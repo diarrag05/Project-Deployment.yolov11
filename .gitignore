@@ -1,0 +1,150 @@
+# YOLOv11 Segmentation Project - .gitignore
+
+# ========================================================================
+# Python & Environnements Virtuels
+# ========================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# ========================================================================
+# IDE & Éditeurs
+# ========================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.vim/
+
+# ========================================================================
+# Jupyter & Notebooks
+# ========================================================================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ========================================================================
+# Données & Modèles (volumineux)
+# ========================================================================
+# Modèles pré-entraînés
+*.pt
+*.pth
+*.onnx
+yolov11*.pt
+
+# Résultats d'entraînement
+runs/
+!runs/.gitkeep
+
+# Résultats d'évaluation
+evaluations/
+!evaluations/.gitkeep
+
+# Résultats d'inférence
+inferences/
+!inferences/.gitkeep
+
+# Résultats void_rate
+void_rate_results/
+!void_rate_results/.gitkeep
+
+# Logs
+logs/
+*.log
+!logs/.gitkeep
+
+# Images et données volumineuses
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.bmp
+!README_images/
+!docs/
+
+# ========================================================================
+# TensorBoard & Monitoring
+# ========================================================================
+events.out.tfevents*
+.tensorboard/
+
+# ========================================================================
+# OS Spécifique
+# ========================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ========================================================================
+# Système de Fichiers
+# ========================================================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# ========================================================================
+# Cache
+# ========================================================================
+.cache/
+*.cache
+
+# ========================================================================
+# Fichiers de Configuration Locaux
+# ========================================================================
+.env
+.env.local
+config.local.py
+settings.local.py
+
+# ========================================================================
+# Archives
+# ========================================================================
+*.zip
+*.tar
+*.gz
+*.rar
+
+# ========================================================================
+# Fichiers Temporaires
+# ========================================================================
+*.swp
+*.swo
+*~
+.#*
+
+# ========================================================================
+# Permissions (Linux/Mac)
+# ========================================================================
+.permissions
