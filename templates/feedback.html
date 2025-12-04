@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback & Active Learning - YOLOv11 Segmentation</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="logo">🎯 YOLOv11 Segmentation Platform</span>
+            </div>
+            <ul class="navbar-menu">
+                <li><a href="/">Home</a></li>
+                <li><a href="/analysis">Analysis</a></li>
+                <li><a href="/dashboard">Dashboard</a></li>
+                <li><a href="/feedback" class="active">Feedback</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container">
+        <div class="page-header">
+            <h1>📊 Active Learning & Feedback</h1>
+            <p>Help improve the model by providing feedback on predictions</p>
+        </div>
+
+        <!-- Statistics Card -->
+        <div class="card">
+            <h2>📈 Feedback Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-value" id="total-feedback">0</div>
+                    <div class="stat-label">Total Feedback</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="correct-count">0</div>
+                    <div class="stat-label">Correct</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="incorrect-count">0</div>
+                    <div class="stat-label">Incorrect</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="accuracy">0%</div>
+                    <div class="stat-label">Accuracy</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Recommendation -->
+        <div class="card">
+            <h2>🚀 Training Recommendation</h2>
+            <div id="training-recommendation" class="recommendation-box">
+                <p>Loading recommendation...</p>
+            </div>
+        </div>
+
+        <!-- Feedback Management -->
+        <div class="card">
+            <h2>💾 Feedback Management</h2>
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="refreshStats()">🔄 Refresh Stats</button>
+                <button class="btn btn-success" onclick="exportFeedback()">📥 Export for Training</button>
+                <button class="btn btn-warning" onclick="viewPendingFeedback()">👁️ View Pending</button>
+                <button class="btn btn-danger" onclick="clearFeedback()">🗑️ Clear All</button>
+            </div>
+        </div>
+
+        <!-- Pending Feedback Table -->
+        <div class="card">
+            <h2>⏳ Pending Feedback</h2>
+            <div class="table-container">
+                <table id="pending-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Feedback</th>
+                            <th>Confidence</th>
+                            <th>Notes</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pending-tbody">
+                        <tr><td colspan="5" style="text-align: center; padding: 20px;">No pending feedback</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Incorrect Predictions (for retraining) -->
+        <div class="card">
+            <h2>❌ Incorrect Predictions (Priority for Retraining)</h2>
+            <div class="table-container">
+                <table id="incorrect-table" class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Feedback</th>
+                            <th>Boxes</th>
+                            <th>Confidence</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="incorrect-tbody">
+                        <tr><td colspan="5" style="text-align: center; padding: 20px;">No incorrect predictions</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="card">
+            <h2>📊 Feedback Distribution</h2>
+            <canvas id="feedback-chart"></canvas>
+        </div>
+
+        <!-- How it Works -->
+        <div class="card info-card">
+            <h2>❓ How Active Learning Works</h2>
+            <div class="info-content">
+                <h3>1️⃣ Upload & Predict</h3>
+                <p>Upload images and get predictions from the model</p>
+                
+                <h3>2️⃣ Give Feedback</h3>
+                <p>Tell us if the prediction was correct or incorrect</p>
+                
+                <h3>3️⃣ Collect Data</h3>
+                <p>System collects all feedback from all users</p>
+                
+                <h3>4️⃣ Retrain</h3>
+                <p>When enough incorrect predictions are collected, retrain the model</p>
+                
+                <h3>5️⃣ Improve</h3>
+                <p>Model improves continuously with user feedback</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modals -->
+    <div id="export-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('export-modal')">&times;</span>
+            <h2>📥 Export Feedback</h2>
+            <p>Exporting feedback data for model retraining...</p>
+            <div id="export-progress" class="progress-bar">
+                <div id="export-progress-fill" class="progress-fill" style="width: 0%"></div>
+            </div>
+            <p id="export-status" style="text-align: center; margin-top: 10px;">Preparing...</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script>
+        let feedbackChart = null;
+
+        // Load initial data
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshStats();
+            loadFeedbackChart();
+            setInterval(refreshStats, 10000); // Refresh every 10 seconds
+        });
+
+        function refreshStats() {
+            fetch('/api/feedback')
+                .then(r => r.json())
+                .then(data => {
+                    // Update stats
+                    const stats = data.stats;
+                    document.getElementById('total-feedback').textContent = stats.total_feedback;
+                    document.getElementById('correct-count').textContent = stats.correct;
+                    document.getElementById('incorrect-count').textContent = stats.incorrect + stats.partial;
+                    document.getElementById('accuracy').textContent = (stats.accuracy * 100).toFixed(1) + '%';
+
+                    // Update recommendation
+                    const rec = data.recommendation;
+                    let recHTML = `
+                        <div class="recommendation-content">
+                            <p><strong>Incorrect Predictions:</strong> ${rec.incorrect_count}</p>
+                            <p><strong>Minimum for Training:</strong> ${rec.next_threshold}</p>
+                            <p><strong>Model Accuracy:</strong> ${(rec.accuracy * 100).toFixed(1)}%</p>
+                    `;
+
+                    if (rec.should_retrain) {
+                        recHTML += `<div class="alert alert-success">✅ Ready to Retrain! You have ${rec.incorrect_count} incorrect predictions.</div>`;
+                    } else {
+                        const needed = rec.next_threshold - rec.incorrect_count;
+                        recHTML += `<div class="alert alert-info">ℹ️ Collect ${needed} more incorrect predictions to trigger retraining.</div>`;
+                    }
+                    recHTML += '</div>';
+
+                    document.getElementById('training-recommendation').innerHTML = recHTML;
+                })
+                .catch(err => showToast('Error loading stats: ' + err));
+        }
+
+        function loadFeedbackChart() {
+            fetch('/api/feedback')
+                .then(r => r.json())
+                .then(data => {
+                    const stats = data.stats;
+                    const ctx = document.getElementById('feedback-chart').getContext('2d');
+
+                    if (feedbackChart) {
+                        feedbackChart.destroy();
+                    }
+
+                    feedbackChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Correct', 'Incorrect', 'Partial', 'Unsure'],
+                            datasets: [{
+                                data: [stats.correct, stats.incorrect, stats.partial, stats.unsure],
+                                backgroundColor: [
+                                    '#4CAF50',
+                                    '#f44336',
+                                    '#FF9800',
+                                    '#9C27B0'
+                                ],
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 15,
+                                        font: { size: 14 }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(err => console.error('Chart error:', err));
+        }
+
+        function viewPendingFeedback() {
+            fetch('/api/feedback/pending')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('pending-tbody');
+                    
+                    if (data.count === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">No pending feedback</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.feedback.map(f => `
+                        <tr>
+                            <td><strong>${f.image_filename}</strong></td>
+                            <td><span class="badge badge-${f.user_feedback}">${f.user_feedback}</span></td>
+                            <td>${(f.confidence * 100).toFixed(0)}%</td>
+                            <td>${f.notes || '-'}</td>
+                            <td>${new Date(f.timestamp).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => showToast('Error loading pending feedback: ' + err));
+        }
+
+        function exportFeedback() {
+            showModal('export-modal');
+            const modal = document.getElementById('export-modal');
+
+            fetch('/api/feedback/export', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('export-status').textContent = `✅ Exported ${data.count} samples to ${data.file}`;
+                        document.getElementById('export-progress-fill').style.width = '100%';
+                        showToast(`Exported ${data.count} feedback samples`);
+                        setTimeout(() => closeModal('export-modal'), 2000);
+                    } else {
+                        document.getElementById('export-status').textContent = '❌ Export failed';
+                    }
+                })
+                .catch(err => {
+                    document.getElementById('export-status').textContent = '❌ Error: ' + err;
+                });
+        }
+
+        function clearFeedback() {
+            if (!confirm('Are you sure? This will clear all feedback records.')) return;
+
+            fetch('/api/feedback/clear', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keep_processed: true })
+            })
+            .then(r => r.json())
+            .then(data => {
+                showToast(`Feedback cleared. Kept ${data.kept} processed records.`);
+                refreshStats();
+            })
+            .catch(err => showToast('Error clearing feedback: ' + err));
+        }
+
+        function showModal(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Load incorrect predictions on page load
+        window.addEventListener('load', () => {
+            fetch('/api/feedback/incorrect?limit=20')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('incorrect-tbody');
+                    
+                    if (data.count === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 20px;">No incorrect predictions yet</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = data.predictions.map(p => `
+                        <tr>
+                            <td><strong>${p.image_filename}</strong></td>
+                            <td><span class="badge badge-${p.user_feedback}">${p.user_feedback}</span></td>
+                            <td>${p.prediction?.boxes?.length || 0}</td>
+                            <td>${(p.confidence * 100).toFixed(0)}%</td>
+                            <td>${p.notes || '-'}</td>
+                        </tr>
+                    `).join('');
+                });
+        });
+    </script>
+</body>
+</html>

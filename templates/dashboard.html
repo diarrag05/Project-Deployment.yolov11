@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Training & Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-container">
+            <h1 class="logo">YOLOv11 Segmentation Platform</h1>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/analysis">Analysis</a></li>
+                <li><a href="/dashboard" class="active">Dashboard</a></li>
+                <li><a href="#" onclick="checkHealth()">Status</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="dashboard-header">
+            <h2>Dashboard & Analytics</h2>
+            <div class="header-controls">
+                <button id="refreshBtn" class="btn btn-sm">Refresh</button>
+                <button id="exportReportBtn" class="btn btn-sm">Export Report</button>
+            </div>
+        </section>
+
+        <div class="dashboard-grid">
+            <!-- Statistics Cards -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <h4>Total Images</h4>
+                    <p class="stat-value" id="totalImages">0</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Avg Void Rate</h4>
+                    <p class="stat-value" id="avgVoidRate">0.00%</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Model Status</h4>
+                    <p class="stat-value" id="modelStatus">Ready</p>
+                </div>
+                <div class="stat-card">
+                    <h4>API Health</h4>
+                    <p class="stat-value status-ok" id="apiHealth">✓ Online</p>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <div class="chart-container">
+                    <h3>Void Rate Distribution</h3>
+                    <canvas id="voidRateChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Area Statistics</h3>
+                    <canvas id="areaChart"></canvas>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Processing History</h3>
+                    <canvas id="historyChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Training Section -->
+            <section class="training-section">
+                <h3>Model Training</h3>
+                <div class="training-panel">
+                    <div class="training-config">
+                        <h4>Training Configuration</h4>
+                        <div class="form-group">
+                            <label for="epochs">Epochs:</label>
+                            <input type="number" id="epochs" value="10" min="1" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="batchSize">Batch Size:</label>
+                            <select id="batchSize">
+                                <option value="8">8</option>
+                                <option value="16" selected>16</option>
+                                <option value="32">32</option>
+                                <option value="64">64</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="learningRate">Learning Rate:</label>
+                            <input type="number" id="learningRate" value="0.001" step="0.0001" min="0.00001">
+                        </div>
+                        <button id="startTrainBtn" class="btn btn-success">Start Training</button>
+                        <button id="cancelTrainBtn" class="btn btn-danger" disabled>Cancel Training</button>
+                    </div>
+
+                    <div class="training-monitor" id="trainingMonitor" style="display: none;">
+                        <h4>Training Progress</h4>
+                        <div class="progress-container">
+                            <div class="progress-info">
+                                <span id="epochInfo">Epoch 0/10</span>
+                                <span id="progressPercent">0%</span>
+                            </div>
+                            <progress id="trainingProgress" max="100" value="0"></progress>
+                        </div>
+
+                        <div class="training-logs">
+                            <h5>Training Logs</h5>
+                            <div id="trainingLogs" class="logs-container">
+                                <!-- Logs will be populated here -->
+                            </div>
+                        </div>
+
+                        <div class="training-stats">
+                            <div class="stat-item">
+                                <label>Status:</label>
+                                <span id="trainStatus">Starting...</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Time Elapsed:</label>
+                                <span id="trainTime">00:00:00</span>
+                            </div>
+                            <div class="stat-item">
+                                <label>Est. Time Remaining:</label>
+                                <span id="trainEta">Calculating...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Data Management -->
+            <section class="data-section">
+                <h3>Data Management</h3>
+                <div class="data-panel">
+                    <div class="data-info">
+                        <h4>Labeled Data</h4>
+                        <p>Total labels: <strong id="totalLabels">0</strong></p>
+                        <p>Storage used: <strong id="storageUsed">0 MB</strong></p>
+                    </div>
+
+                    <div class="export-controls">
+                        <h4>Export Options</h4>
+                        <button id="exportCsvBtn" class="btn btn-info">Export as CSV</button>
+                        <button id="exportJsonBtn" class="btn btn-info">Export as JSON</button>
+                        <button id="clearDataBtn" class="btn btn-danger">Clear Data</button>
+                    </div>
+
+                    <div class="recent-labels">
+                        <h4>Recent Labels</h4>
+                        <div id="labelsList" class="labels-container">
+                            <!-- Recent labels will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- System Information -->
+            <section class="system-section">
+                <h3>System Information</h3>
+                <div class="system-info">
+                    <table>
+                        <tr>
+                            <td>Model</td>
+                            <td id="sysModel">YOLOv8n-seg</td>
+                        </tr>
+                        <tr>
+                            <td>SAM Status</td>
+                            <td id="samStatus">Checking...</td>
+                        </tr>
+                        <tr>
+                            <td>GPU Available</td>
+                            <td id="gpuStatus">Checking...</td>
+                        </tr>
+                        <tr>
+                            <td>Framework Version</td>
+                            <td id="frameworkVersion">Checking...</td>
+                        </tr>
+                        <tr>
+                            <td>API Version</td>
+                            <td id="apiVersion">v1.0</td>
+                        </tr>
+                        <tr>
+                            <td>Last Updated</td>
+                            <td id="lastUpdated">-</td>
+                        </tr>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 YOLOv11 Segmentation Platform</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # Flask Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yolov11-app
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./uploads:/app/uploads
+      - ./labeled_data:/app/labeled_data
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./feedback_data:/app/feedback_data
+      - ./logs:/app/logs
+    networks:
+      - yolov11-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # PostgreSQL Database (optional, for future analytics)
+  postgres:
+    image: postgres:15-alpine
+    container_name: yolov11-db
+    environment:
+      POSTGRES_DB: yolov11
+      POSTGRES_USER: yolov11_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - yolov11-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yolov11_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Nginx Reverse Proxy (optional, for production)
+  nginx:
+    image: nginx:alpine
+    container_name: yolov11-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - yolov11-network
+    depends_on:
+      - app
+    restart: unless-stopped
+
+networks:
+  yolov11-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
