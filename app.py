@@ -73,6 +73,22 @@ def feedback():
     return render_template('feedback.html')
 
 # ============================================================================
+# UPLOADS ROUTE - Serve uploaded images
+# ============================================================================
+
+@app.route('/uploads/<filename>')
+def serve_upload(filename):
+    """Serve uploaded files"""
+    try:
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if os.path.exists(file_path):
+            return send_file(file_path)
+        return jsonify({'error': 'File not found'}), 404
+    except Exception as e:
+        logger.error(f"Error serving file {filename}: {str(e)}")
+        return jsonify({'error': 'Error serving file'}), 500
+
+# ============================================================================
 # STATUS ROUTES
 # ============================================================================
 

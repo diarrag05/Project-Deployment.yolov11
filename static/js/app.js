@@ -3,6 +3,7 @@
 const API_BASE = '/api';
 let selectedFile = null;
 let predictionResult = null;
+let currentBlobUrl = null; // Track blob URL to revoke it
 
 // Image Upload
 const uploadArea = document.getElementById('uploadArea');
@@ -42,13 +43,23 @@ if (uploadArea && imageInput) {
     });
 
     function handleFileSelect(file) {
+        // Cleanup old blob URL
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+        }
+        
         selectedFile = file;
+        predictionResult = null;
+        
         const reader = new FileReader();
         reader.onload = (e) => {
-            preview.src = e.target.result;
+            currentBlobUrl = e.target.result;
+            preview.src = currentBlobUrl;
             previewContainer.style.display = 'block';
             predictBtn.disabled = false;
             uploadArea.style.display = 'none';
+            // Clear previous results
+            document.getElementById('resultsSection').style.display = 'none';
         };
         reader.readAsDataURL(file);
     }
@@ -70,6 +81,12 @@ if (uploadArea && imageInput) {
             uploadArea.style.display = 'block';
             predictBtn.disabled = true;
             document.getElementById('resultsSection').style.display = 'none';
+            
+            // Cleanup blob URLs
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
+            }
         });
     }
 }
@@ -118,9 +135,20 @@ async function runInference(file) {
 function displayResults(result) {
     const resultsSection = document.getElementById('resultsSection');
     
-    // Display images
+    // Display original image from uploaded file
     if (document.getElementById('originalImage')) {
-        document.getElementById('originalImage').src = URL.createObjectURL(selectedFile);
+        document.getElementById('originalImage').src = currentBlobUrl;
+    }
+    
+    // Display segmentation mask
+    if (document.getElementById('maskImage')) {
+        if (result.mask_url) {
+            // Generated mask with contours from server
+            document.getElementById('maskImage').src = result.mask_url + '?t=' + new Date().getTime();
+        } else {
+            // No detections - show original image
+            document.getElementById('maskImage').src = currentBlobUrl;
+        }
     }
 
     // Update statistics
