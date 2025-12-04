@@ -11,6 +11,12 @@ from pathlib import Path
 from datetime import datetime
 import logging
 
+# Imports pour inference
+from void_rate_calculator import VoidRateCalculator
+
+# Configuration
+MODEL_PATH = "models/yolov8n-seg_trained.pt"
+
 # Setup
 predict_bp = Blueprint('predict', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
@@ -53,11 +59,11 @@ def predict():
     }
     """
     try:
-        # Check if file exists
-        if 'file' not in request.files:
+        # Check if file exists (check both 'file' and 'image' keys for compatibility)
+        if 'image' not in request.files and 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
         
-        file = request.files['file']
+        file = request.files.get('image') or request.files.get('file')
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
@@ -74,29 +80,55 @@ def predict():
         
         logger.info(f"Processing image: {image_id}")
         
-        # Run YOLO inference
-        results = yolo_model.predict(upload_path)
-        
-        # Calculate void rate
-        void_rate_result = yolo_model.calculate_void_rate(results)
-        
-        # Prepare response
-        response = {
-            'status': 'success',
-            'image_id': image_id,
-            'timestamp': timestamp,
-            'predictions': results['detections'],
-            'statistics': void_rate_result,
-            'image_url': f'/uploads/{image_id}'
-        }
-        
-        # Save prediction results
-        results_file = os.path.join(current_app.config['UPLOAD_FOLDER'], f"{image_id}_results.json")
-        with open(results_file, 'w') as f:
-            json.dump(response, f, indent=2)
-        
-        logger.info(f"Prediction successful for {image_id}")
-        return jsonify(response), 200
+        try:
+            # Run YOLO inference and calculate void rate
+            void_rate_calc = VoidRateCalculator(MODEL_PATH)
+            void_rate_result = void_rate_calc.calculate_void_rate(upload_path, verbose=False)
+            
+            logger.info(f"Void rate result type: {type(void_rate_result)}")
+            logger.info(f"Void rate result: {void_rate_result}")
+            
+            if void_rate_result is None:
+                logger.error("void_rate_result is None!")
+                return jsonify({'status': 'error', 'message': 'Void rate calculation returned None'}), 500
+            
+            # Calculate percentages
+            chip_area = void_rate_result.get('chip_area_pixels', 1)  # Avoid division by 0
+            holes_area = void_rate_result.get('hole_area_pixels', 0)
+            total_area = chip_area + holes_area if (chip_area + holes_area) > 0 else 1
+            
+            chip_percentage = (chip_area / total_area) * 100 if total_area > 0 else 0
+            holes_percentage = (holes_area / total_area) * 100 if total_area > 0 else 0
+            
+            # Prepare response - matching frontend expectations
+            response = {
+                'status': 'success',
+                'result': {
+                    'void_rate': float(void_rate_result.get('void_rate', 0)),
+                    'chip_area': int(chip_area),
+                    'holes_area': int(holes_area),
+                    'chip_percentage': float(chip_percentage),
+                    'holes_percentage': float(holes_percentage),
+                    'confidence': 0.85,  # Default confidence
+                    'num_chips': int(void_rate_result.get('num_chips', 0)),
+                    'num_holes': int(void_rate_result.get('num_holes', 0))
+                },
+                'image_id': image_id,
+                'timestamp': timestamp,
+                'image_url': f'/uploads/{image_id}'
+            }
+            
+            # Save prediction results
+            results_file = os.path.join(current_app.config['UPLOAD_FOLDER'], f"{image_id}_results.json")
+            with open(results_file, 'w') as f:
+                json.dump(response, f, indent=2)
+            
+            logger.info(f"Prediction successful for {image_id}")
+            return jsonify(response), 200
+            
+        except Exception as e:
+            logger.error(f"Error in predict: {str(e)}", exc_info=True)
+            return jsonify({'status': 'error', 'message': str(e)}), 500
     
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
