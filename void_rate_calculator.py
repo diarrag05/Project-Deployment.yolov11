@@ -95,7 +95,8 @@ class VoidRateCalculator:
                 'chip_area_pixels': 0,
                 'num_holes': 0,
                 'num_chips': 0,
-                'error': 'Aucune détection'
+                'error': 'Aucune détection',
+                'yolo_results': [result] if result else None
             }
         
         image = cv2.imread(image_path)
@@ -135,6 +136,7 @@ class VoidRateCalculator:
             'num_chips': int(num_chips),
             'image_resolution': f"{w}x{h}",
             'confidence_threshold': conf_threshold,
+            'yolo_results': [result]  # Include YOLO results for mask generation
         }
         
         if verbose:

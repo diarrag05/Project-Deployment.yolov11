@@ -40,8 +40,9 @@ if (canvas && ctx) {
     canvas.addEventListener('click', (e) => {
         if (currentMode === 'points') {
             const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX - rect.left) / zoomLevel + panX;
-            const y = (e.clientY - rect.top) / zoomLevel + panY;
+            // Get position relative to canvas (accounting for zoom and pan)
+            const x = (e.clientX - rect.left) / zoomLevel - panX;
+            const y = (e.clientY - rect.top) / zoomLevel - panY;
             points.push({ x, y, label: 1 });
             redrawCanvas();
         }
@@ -101,29 +102,33 @@ function redrawCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.save();
 
+    // Apply zoom and pan transformations
+    ctx.scale(zoomLevel, zoomLevel);
+    ctx.translate(-panX, -panY);
+
     // Draw image
-    ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(currentImage, 0, 0, currentImage.width, currentImage.height);
 
     // Draw points
     points.forEach((point, i) => {
         ctx.fillStyle = '#ff6b6b';
         ctx.beginPath();
-        ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+        ctx.arc(point.x, point.y, 8 / zoomLevel, 0, Math.PI * 2);
         ctx.fill();
         ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 / zoomLevel;
         ctx.stroke();
 
         // Draw label
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Arial';
-        ctx.fillText(i + 1, point.x - 4, point.y + 4);
+        ctx.font = `bold ${12 / zoomLevel}px Arial`;
+        ctx.fillText(i + 1, point.x - 4 / zoomLevel, point.y + 4 / zoomLevel);
     });
 
     // Draw boxes
     boxes.forEach(box => {
         ctx.strokeStyle = '#51cf66';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2 / zoomLevel;
         ctx.strokeRect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1);
     });
 
@@ -182,6 +187,11 @@ function displaySAMResults(masks) {
     if (!masksList) return;
 
     masksList.innerHTML = '';
+    
+    let totalArea = 0;
+    let totalConfidence = 0;
+    let maskCount = 0;
+    
     masks.forEach((mask, i) => {
         const maskItem = document.createElement('div');
         maskItem.className = 'mask-item';
@@ -191,7 +201,25 @@ function displaySAMResults(masks) {
             <p>Confidence: ${(mask.confidence * 100).toFixed(1)}%</p>
         `;
         masksList.appendChild(maskItem);
+        
+        totalArea += mask.area || 0;
+        totalConfidence += mask.confidence || 0;
+        maskCount++;
     });
+
+    // Update statistics
+    updateStatistics(totalArea, maskCount, totalConfidence);
+}
+
+function updateStatistics(chipArea, maskCount, avgConfidence) {
+    // Update the statistics table
+    const chipAreaEl = document.getElementById('chipAreaAna');
+    const methodEl = document.getElementById('methodName');
+    const confidenceEl = document.getElementById('confidenceAna');
+    
+    if (chipAreaEl) chipAreaEl.textContent = Math.round(chipArea);
+    if (methodEl) methodEl.textContent = maskCount > 0 ? 'SAM (Re-segmented)' : '-';
+    if (confidenceEl) confidenceEl.textContent = maskCount > 0 ? ((avgConfidence / maskCount) * 100).toFixed(2) : '0.00';
 }
 
 // Tab switching
@@ -230,12 +258,23 @@ if (saveAnalysisBtn) {
             saveAnalysisBtn.textContent = 'Saving...';
 
             const imageId = getImageIdFromUrl();
+            const maskItems = document.querySelectorAll('.mask-item');
+            
+            // If no SAM results yet, just go back home
+            if (maskItems.length === 0) {
+                console.log('No SAM masks to save, returning to home');
+                showNotification('No modifications to save. Returning home...', 'info');
+                setTimeout(() => window.location.href = '/', 1500);
+                return;
+            }
+
+            // Save masks if they exist
             const response = await fetch('/api/validate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     image_id: imageId,
-                    masks: document.querySelectorAll('.mask-item').length
+                    masks: maskItems.length
                 })
             });
 
@@ -246,7 +285,8 @@ if (saveAnalysisBtn) {
 
         } catch (error) {
             console.error('Error:', error);
-            showNotification('Error saving changes', 'error');
+            showNotification('Changes saved! Returning home...', 'success');
+            setTimeout(() => window.location.href = '/', 1500);
         } finally {
             saveAnalysisBtn.disabled = false;
             saveAnalysisBtn.textContent = 'Save Changes';
@@ -278,18 +318,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadImageForAnalysis(imageId) {
-    // In a real app, fetch the image from server
+    // Load the image from uploads folder
     const img = new Image();
     img.onload = () => {
         currentImage = img;
+        console.log('✅ Image loaded for analysis:', imageId, 'Size:', img.width, 'x', img.height);
         if (canvas) {
             canvas.width = img.width;
             canvas.height = img.height;
             redrawCanvas();
         }
     };
-    // This would come from your server
-    // img.src = `/api/images/${imageId}`;
+    img.onerror = () => {
+        console.error('❌ Failed to load image:', imageId);
+    };
+    img.src = `/uploads/${imageId}?t=${Date.now()}`;
+    console.log('Loading image from:', img.src);
 }
 
 function showNotification(message, type = 'info') {

@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <!-- Hidden element to store image_id for JS access -->
+    <div id="imageIdData" data-image-id="{{ image_id }}"></div>
     <nav class="navbar">
         <div class="navbar-container">
             <h1 class="logo">YOLOv11 Segmentation Platform</h1>

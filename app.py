@@ -60,7 +60,8 @@ def index():
 @app.route('/analysis')
 def analysis():
     """Analysis page"""
-    return render_template('analysis.html')
+    image_id = request.args.get('image_id', '')
+    return render_template('analysis.html', image_id=image_id)
 
 @app.route('/dashboard')
 def dashboard():
@@ -130,7 +131,7 @@ def server_error(e):
 # ============================================================================
 
 if __name__ == '__main__':
-    logger.info("Starting Flask API...")
-    logger.info(f"Upload folder: {UPLOAD_FOLDER}")
-    logger.info(f"Labeled data folder: {LABELED_FOLDER}")
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    logger.info('Starting Flask API...')
+    logger.info(f'Upload folder: {UPLOAD_FOLDER}')
+    logger.info(f'Labeled data folder: {LABELED_FOLDER}')
+    app.run(debug=False, host='0.0.0.0', port=5000)

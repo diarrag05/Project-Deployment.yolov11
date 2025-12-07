@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Chip Detection</title>
+    <title>Chip Defect Detection & Analysis</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -18,15 +18,15 @@
             min-height: 100vh;
         }
         
+        /* ===== HEADER PREMIUM ===== */
         .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 60px 40px;
+            padding: 0;
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.4);
-            min-height: 350px;
+            align-items: stretch;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            min-height: 300px;
             overflow: hidden;
             position: relative;
         }
@@ -34,63 +34,33 @@
         .header::before {
             content: '';
             position: absolute;
-            top: -50%;
-            right: -10%;
-            width: 600px;
-            height: 600px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            filter: blur(60px);
-            z-index: 0;
-        }
-        
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -30%;
-            left: -5%;
-            width: 500px;
-            height: 500px;
-            background: rgba(240, 147, 251, 0.15);
-            border-radius: 50%;
-            filter: blur(60px);
-            z-index: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,96L48,112C96,128,192,160,288,176C384,192,480,192,576,186.7C672,181,768,171,864,160C960,149,1056,139,1152,138.7C1248,139,1344,149,1392,154.7L1440,160L1440,0L1392,0C1344,0,1248,0,1152,0C1056,0,960,0,864,0C768,0,672,0,576,0C480,0,384,0,288,0C192,0,96,0,48,0L0,0Z"></path></svg>') no-repeat bottom;
+            background-size: cover;
+            opacity: 0.1;
+            pointer-events: none;
         }
         
         .header-content {
             display: flex;
             align-items: center;
-            gap: 80px;
+            gap: 40px;
             flex: 1;
+            padding: 40px;
             position: relative;
             z-index: 1;
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            width: 100%;
-        }
-        
-        .header-text {
-            flex: 1;
         }
         
         .header-text h1 {
-            font-size: 3.5em;
+            font-size: 3em;
             margin-bottom: 15px;
-            font-weight: 900;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
-            letter-spacing: -1px;
-            animation: slideInLeft 0.8s ease-out;
-        }
-        
-        @keyframes slideInLeft {
-            from {
-                opacity: 0;
-                transform: translateX(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            font-weight: 800;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
         }
         
         .header-text p {
@@ -100,34 +70,23 @@
         }
         
         .header-image {
-            display: flex;
-            align-items: center;
-            justify-content: center;
             flex-shrink: 0;
-            position: relative;
-            z-index: 2;
+            width: 280px;
+            height: 280px;
         }
         
         .header-image img {
-            width: 320px;
-            height: 320px;
-            border-radius: 20px;
+            width: 100%;
+            height: 100%;
+            border-radius: 16px;
             object-fit: cover;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5), 0 0 80px rgba(240, 147, 251, 0.4);
-            border: 6px solid white;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
-            animation: float 6s ease-in-out infinite;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+            border: 5px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease;
         }
         
         .header-image img:hover {
-            transform: scale(1.05) translateY(-10px);
-            box-shadow: 0 25px 70px rgba(0,0,0,0.6), 0 0 100px rgba(240, 147, 251, 0.6);
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
+            transform: scale(1.05);
         }
         
         .container {
@@ -148,6 +107,7 @@
             border-radius: 16px;
             padding: 30px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
         }
         
@@ -167,6 +127,10 @@
             gap: 10px;
         }
         
+        .card h2 i {
+            font-size: 1.2em;
+        }
+        
         #uploadArea {
             border: 3px dashed #667eea;
             border-radius: 12px;
@@ -175,12 +139,35 @@
             cursor: pointer;
             transition: all 0.3s ease;
             background: linear-gradient(135deg, #f9f9f9 0%, #f0f4ff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #uploadArea::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        #uploadArea:hover::before {
+            left: 100%;
         }
         
         #uploadArea:hover {
             border-color: #764ba2;
             background: linear-gradient(135deg, #f0f4ff 0%, #e8e4ff 100%);
             transform: scale(1.02);
+        }
+        
+        #uploadArea.active {
+            background: #e8f0ff;
+            border-color: #764ba2;
+            transform: scale(1.05);
         }
         
         #imageInput {
@@ -194,16 +181,35 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .upload-text h3 {
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.2em;
+        }
+        
+        .upload-text p {
+            color: #666;
+            font-size: 0.95em;
         }
         
         .button-group {
             display: flex;
             gap: 15px;
             margin-top: 25px;
+            flex-wrap: wrap;
         }
         
         button {
             flex: 1;
+            min-width: 150px;
             padding: 14px 24px;
             border: none;
             border-radius: 10px;
@@ -215,11 +221,14 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         
         #predictBtn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
         
         #predictBtn:hover:not(:disabled) {
@@ -230,11 +239,18 @@
         #predictBtn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
         }
         
         #resetBtn {
-            background: #e0e0e0;
+            background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
             color: #333;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        #resetBtn:hover {
+            background: linear-gradient(135deg, #d0d0d0 0%, #c0c0c0 100%);
+            transform: translateY(-3px);
         }
         
         .range-group {
@@ -246,6 +262,7 @@
             justify-content: space-between;
             margin-bottom: 12px;
             font-weight: 600;
+            color: #333;
         }
         
         input[type="range"] {
@@ -255,16 +272,29 @@
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             outline: none;
             -webkit-appearance: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
         }
         
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border: 3px solid #667eea;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
             width: 24px;
             height: 24px;
             border-radius: 50%;
             background: white;
             cursor: pointer;
             border: 3px solid #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         
         .full-width {
@@ -281,8 +311,14 @@
         }
         
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .results-grid {
@@ -298,6 +334,13 @@
             padding: 25px;
             border-radius: 12px;
             text-align: center;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
         }
         
         .stat-box h3 {
@@ -305,11 +348,19 @@
             opacity: 0.9;
             margin-bottom: 10px;
             text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .stat-box .value {
             font-size: 2.2em;
             font-weight: bold;
+            line-height: 1;
+        }
+        
+        .stat-box .unit {
+            font-size: 0.7em;
+            opacity: 0.8;
+            margin-top: 5px;
         }
         
         .images-comparison {
@@ -331,25 +382,100 @@
             padding: 20px;
             font-size: 1.2em;
             border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         .image-column img {
             width: 100%;
+            display: block;
             max-height: 400px;
             object-fit: contain;
             padding: 20px;
             background: #f9f9f9;
         }
         
+        .notification {
+            position: fixed;
+            top: 30px;
+            right: 30px;
+            padding: 18px 28px;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.4s ease;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .notification.show {
+            display: flex;
+        }
+        
+        .notification.error {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        }
+        
+        .notification.success {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .header-content {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .header-image {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .header-text h1 {
+                font-size: 2.2em;
+            }
+            
+            .results-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
         @media (max-width: 768px) {
             .row {
                 grid-template-columns: 1fr;
             }
+            
             .images-comparison {
                 grid-template-columns: 1fr;
             }
+            
             .results-grid {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .header-text h1 {
+                font-size: 1.8em;
+            }
+            
+            .header-content {
+                padding: 20px;
             }
         }
     </style>
@@ -358,20 +484,12 @@
     <div class="header">
         <div class="header-content">
             <div class="header-text">
-                <h1><i class="fas fa-robot"></i> Advanced Detection</h1>
-                <p style="font-size: 1.4em; margin-bottom: 10px;"><strong>Professional Chip Defect Analysis</strong></p>
-                <p style="font-size: 0.95em; opacity: 0.9; margin-top: 20px;">High-precision defect detection using cutting-edge YOLOv11 segmentation technology. Instantly analyze chip quality with real-time masks and statistical insights.</p>
-                <div style="margin-top: 25px; display: flex; gap: 15px;">
-                    <div style="display: flex; align-items: center; gap: 8px; opacity: 0.95;">
-                        <i class="fas fa-check-circle"></i> Real-time Detection
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 8px; opacity: 0.95;">
-                        <i class="fas fa-chart-bar"></i> Detailed Analytics
-                    </div>
-                </div>
+                <h1><i class="fas fa-microchip"></i> Advanced Detection</h1>
+                <p><strong>Professional Chip Defect Analysis Platform</strong></p>
+                <p style="font-size: 0.95em; margin-top: 10px; opacity: 0.85;">Precision detection using YOLOv11 segmentation technology. Upload images to identify chips and measure void rates with high accuracy.</p>
             </div>
             <div class="header-image">
-                <img src="/static/team_photo.jpg" alt="Team Photo" style="object-fit: cover;">
+                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" alt="Team" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px; background: #667eea;">
             </div>
         </div>
     </div>
@@ -382,9 +500,9 @@
                 <h2><i class="fas fa-cloud-upload-alt"></i> Upload Image</h2>
                 <div id="uploadArea">
                     <div class="upload-icon"><i class="fas fa-image"></i></div>
-                    <div style="margin-top: 15px;">
-                        <h3 style="color: #333; margin-bottom: 8px;">Drop Your Image Here</h3>
-                        <p style="color: #666;">or click to select from your computer</p>
+                    <div class="upload-text">
+                        <h3>Drop Your Image Here</h3>
+                        <p>or click to select from your computer</p>
                     </div>
                     <input type="file" id="imageInput" accept="image/*">
                 </div>
@@ -415,29 +533,29 @@
                 
                 <div class="results-grid">
                     <div class="stat-box">
-                        <h3>Chip Area</h3>
+                        <h3><i class="fas fa-microchip"></i> Chip Area</h3>
                         <div class="value" id="chipArea">0</div>
-                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 5px;">pixels</div>
+                        <div class="unit">pixels</div>
                     </div>
                     <div class="stat-box">
-                        <h3>Holes Area</h3>
+                        <h3><i class="fas fa-hole"></i> Holes Area</h3>
                         <div class="value" id="holesArea">0</div>
-                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 5px;">pixels</div>
+                        <div class="unit">pixels</div>
                     </div>
                     <div class="stat-box">
-                        <h3>Void Rate</h3>
+                        <h3><i class="fas fa-percent"></i> Void Rate</h3>
                         <div class="value" id="voidRate">0</div>
-                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 5px;">%</div>
+                        <div class="unit">%</div>
                     </div>
                     <div class="stat-box">
-                        <h3>Chip %</h3>
+                        <h3><i class="fas fa-square"></i> Chip %</h3>
                         <div class="value" id="chipPercentage">0</div>
-                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 5px;">%</div>
+                        <div class="unit">%</div>
                     </div>
                     <div class="stat-box">
-                        <h3>Holes %</h3>
+                        <h3><i class="fas fa-triangle"></i> Holes %</h3>
                         <div class="value" id="holesPercentage">0</div>
-                        <div style="font-size: 0.7em; opacity: 0.8; margin-top: 5px;">%</div>
+                        <div class="unit">%</div>
                     </div>
                 </div>
 
@@ -451,21 +569,11 @@
                         <img id="maskImage" alt="Segmentation Mask">
                     </div>
                 </div>
-
-                <div style="display: flex; gap: 15px; margin-top: 30px; flex-wrap: wrap;">
-                    <button id="relabelBtn" style="background: linear-gradient(135deg, #ff9a56 0%, #ff6b6b 100%); color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; flex: 1; min-width: 150px;">
-                        <i class="fas fa-magic"></i> Re-segment (SAM)
-                    </button>
-                    <button id="validateBtn" style="background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%); color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; flex: 1; min-width: 150px;">
-                        <i class="fas fa-check"></i> Save Labels
-                    </button>
-                    <button id="exportBtn" style="background: linear-gradient(135deg, #748ffc 0%, #5c7cfa 100%); color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; flex: 1; min-width: 150px;">
-                        <i class="fas fa-download"></i> Export
-                    </button>
-                </div>
             </div>
         </div>
     </div>
+
+    <div class="notification" id="notification"></div>
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

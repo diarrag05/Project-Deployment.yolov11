@@ -24,12 +24,9 @@ def validate():
     Input:
     {
         "image_id": "timestamp_filename",
-        "masks": [
-            {
-                "mask": [polygon_points],
-                "label": "chip" or "hole"
-            }
-        ]
+        "masks": [...],
+        "void_rate": float,
+        "stats": {...}
     }
     
     Returns:
@@ -45,8 +42,12 @@ def validate():
         image_id = data.get('image_id')
         masks = data.get('masks', [])
         
-        if not image_id or not masks:
-            return jsonify({'error': 'image_id and masks required'}), 400
+        # Image ID is required
+        if not image_id:
+            return jsonify({'error': 'image_id is required'}), 400
+        
+        # Masks can be empty list - that's ok, just means no specific mask data
+        # The important thing is we're logging this inference result
         
         # Save labeled data
         label_id = storage.save_labels(

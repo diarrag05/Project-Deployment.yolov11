@@ -19,8 +19,8 @@ MODEL_NAME = "yolov8n-seg"  # nano model for segmentation
 OUTPUT_MODEL = "models/yolov8n-seg_trained.pt"
 EPOCHS = 50  # Entraînement rapide
 IMGSZ = 320
-BATCH_SIZE = 8
-DEVICE = 0  # GPU 0 (or 'cpu' si pas de GPU)
+BATCH_SIZE = 4  # Réduit pour CPU
+DEVICE = 'cpu'  # CPU mode (pas de GPU disponible)
 
 def create_data_yaml():
     """Créer le fichier data.yaml s'il n'existe pas"""

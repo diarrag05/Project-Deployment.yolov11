@@ -4,6 +4,7 @@ const API_BASE = '/api';
 let selectedFile = null;
 let predictionResult = null;
 let currentBlobUrl = null; // Track blob URL to revoke it
+let lastImageId = null; // Track the last image_id from the API response
 
 // Image Upload
 const uploadArea = document.getElementById('uploadArea');
@@ -118,8 +119,9 @@ async function runInference(file) {
         }
 
         const data = await response.json();
+        console.log('API Response:', data);
         predictionResult = data.result;
-        displayResults(data.result);
+        displayResults(data.result, data);  // Pass full API response with mask_url
         showNotification('Inference completed successfully!', 'success');
 
     } catch (error) {
@@ -132,21 +134,49 @@ async function runInference(file) {
 }
 
 // Display Results
-function displayResults(result) {
+function displayResults(result, apiResponse) {
     const resultsSection = document.getElementById('resultsSection');
+    
+    // Save the image_id for later use (e.g., for SAM relabeling)
+    if (apiResponse?.image_id) {
+        lastImageId = apiResponse.image_id;
+        console.log('💾 Saved image_id:', lastImageId);
+    }
     
     // Display original image from uploaded file
     if (document.getElementById('originalImage')) {
         document.getElementById('originalImage').src = currentBlobUrl;
     }
     
-    // Display segmentation mask
+    // Display segmentation mask - use mask_url from API response
     if (document.getElementById('maskImage')) {
-        if (result.mask_url) {
+        const maskUrl = apiResponse?.mask_url || result?.mask_url;
+        console.log('🎯 Mask URL from response:', maskUrl);
+        console.log('🎯 Full API Response:', apiResponse);
+        if (maskUrl) {
             // Generated mask with contours from server
-            document.getElementById('maskImage').src = result.mask_url + '?t=' + new Date().getTime();
+            const fullUrl = maskUrl.startsWith('http') ? maskUrl : maskUrl;
+            const urlWithCache = fullUrl + '?t=' + new Date().getTime();
+            console.log('🎯 Setting mask image src to:', urlWithCache);
+            const imgElement = document.getElementById('maskImage');
+            
+            // Add error handler
+            imgElement.onerror = function() {
+                console.error('❌ Failed to load mask image from:', urlWithCache);
+                this.src = currentBlobUrl; // Fallback to original image
+                console.log('   Fallback to original image');
+            };
+            
+            // Add load handler
+            imgElement.onload = function() {
+                console.log('✅ Mask image loaded successfully from:', urlWithCache);
+            };
+            
+            imgElement.src = urlWithCache;
+            console.log('✓ Displaying mask from:', fullUrl);
         } else {
             // No detections - show original image
+            console.log('⚠️  No mask_url provided - showing original image');
             document.getElementById('maskImage').src = currentBlobUrl;
         }
     }
@@ -180,8 +210,11 @@ function displayResults(result) {
 const relabelBtn = document.getElementById('relabelBtn');
 if (relabelBtn) {
     relabelBtn.addEventListener('click', () => {
-        if (predictionResult) {
-            window.location.href = `/analysis?image_id=${selectedFile.name}`;
+        if (lastImageId) {
+            console.log('🔄 Opening analysis for:', lastImageId);
+            window.location.href = `/analysis?image_id=${lastImageId}`;
+        } else {
+            alert('Please run inference first');
         }
     });
 }
@@ -196,25 +229,49 @@ if (validateBtn) {
             validateBtn.disabled = true;
             validateBtn.textContent = 'Saving...';
 
-            const formData = new FormData();
-            formData.append('image', selectedFile);
-            formData.append('void_rate', predictionResult.void_rate);
-            formData.append('chip_area', predictionResult.chip_area);
-            formData.append('holes_area', predictionResult.holes_area);
+            // Check if we have prediction results and image_id
+            if (!predictionResult || !lastImageId) {
+                showNotification('No inference results to save', 'warning');
+                validateBtn.disabled = false;
+                validateBtn.textContent = 'Save Labels';
+                return;
+            }
 
+            // Send label save request with image_id and statistics
             const response = await fetch(`${API_BASE}/validate`, {
                 method: 'POST',
-                body: formData
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image_id: lastImageId,
+                    masks: [
+                        {
+                            label: 'chips',
+                            area: predictionResult.chip_area || 0,
+                            count: predictionResult.chip_count || 0
+                        },
+                        {
+                            label: 'holes',
+                            area: predictionResult.holes_area || 0,
+                            count: predictionResult.holes_count || 0
+                        }
+                    ],
+                    void_rate: predictionResult.void_rate || 0,
+                    stats: predictionResult
+                })
             });
 
-            if (!response.ok) throw new Error('Validation failed');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Validation failed');
+            }
 
             const data = await response.json();
-            showNotification(`Label saved: ${data.label_id}`, 'success');
+            showNotification(`✅ Labels saved successfully!`, 'success');
+            console.log('Labels saved:', data);
 
         } catch (error) {
             console.error('Error:', error);
-            showNotification('Error saving labels', 'error');
+            showNotification('Error saving labels: ' + error.message, 'error');
         } finally {
             validateBtn.disabled = false;
             validateBtn.textContent = 'Save Labels';
@@ -226,27 +283,54 @@ if (validateBtn) {
 const exportBtn = document.getElementById('exportBtn');
 if (exportBtn) {
     exportBtn.addEventListener('click', async () => {
-        if (!predictionResult) return;
+        if (!predictionResult) {
+            showNotification('No inference results to export', 'warning');
+            return;
+        }
 
         try {
-            const response = await fetch(`${API_BASE}/report/csv`);
-            if (!response.ok) throw new Error('Export failed');
+            exportBtn.disabled = true;
+            exportBtn.textContent = 'Exporting...';
 
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'predictions.csv';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            // Create CSV content from current prediction
+            const csvContent = [
+                ['Image Analysis Report', new Date().toLocaleString()],
+                [],
+                ['Metric', 'Value'],
+                ['Chip Area (pixels)', predictionResult.chip_area || 0],
+                ['Holes Area (pixels)', predictionResult.holes_area || 0],
+                ['Void Rate (%)', predictionResult.void_rate || 0],
+                ['Chip %', predictionResult.chip_percent || 0],
+                ['Holes %', predictionResult.holes_percent || 0],
+                ['Image ID', lastImageId || 'unknown']
+            ];
 
-            showNotification('Report exported successfully!', 'success');
+            // Convert to CSV string
+            const csvString = csvContent
+                .map(row => row.map(cell => `"${cell}"`).join(','))
+                .join('\n');
+
+            // Create blob and download
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `analysis_${new Date().getTime()}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showNotification('✅ Report exported successfully!', 'success');
 
         } catch (error) {
-            console.error('Error:', error);
-            showNotification('Error exporting report', 'error');
+            console.error('Export error:', error);
+            showNotification('Error exporting report: ' + error.message, 'error');
+        } finally {
+            exportBtn.disabled = false;
+            exportBtn.textContent = 'Export';
         }
     });
 }
