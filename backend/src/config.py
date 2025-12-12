@@ -1,0 +1,108 @@
+"""
+Configuration module for the chip-and-hole detection system.
+Centralizes all configuration settings for easy management and future API integration.
+"""
+from pathlib import Path
+from typing import Optional
+import os
+import yaml
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+
+class Config:
+    """Central configuration class."""
+    
+    # Base paths
+    BASE_DIR = Path(__file__).parent.parent.parent
+    MODELS_DIR = BASE_DIR / os.getenv("MODELS_DIR", "models")
+    DATASET_DIR = BASE_DIR / os.getenv("DATASET_DIR", "dataset")
+    OUTPUT_DIR = BASE_DIR / os.getenv("OUTPUT_DIR", "outputs")
+    RESULTS_DIR = OUTPUT_DIR / os.getenv("RESULTS_DIR", "results")
+    INFERENCE_DIR = OUTPUT_DIR / os.getenv("INFERENCE_DIR", "inference")
+    SAM_OUTPUT_DIR = OUTPUT_DIR / os.getenv("SAM_OUTPUT_DIR", "sam_segmentation")
+    LOGS_DIR = BASE_DIR / os.getenv("LOGS_DIR", "logs")
+    LOG_FILE = LOGS_DIR / os.getenv("LOG_FILE", "app.log")
+    LOG_TRAINING = LOGS_DIR / os.getenv("LOG_TRAINING", "training.log")
+    
+    # Model paths
+    DEFAULT_MODEL = MODELS_DIR / os.getenv("DEFAULT_MODEL", "best.pt")
+    DATA_YAML = DATASET_DIR / os.getenv("DATA_YAML", "data.yaml")
+    
+    # Dataset paths
+    TRAIN_IMAGES_DIR = DATASET_DIR / os.getenv("TRAIN_IMAGES_DIR", "train/images")
+    TRAIN_LABELS_DIR = DATASET_DIR / os.getenv("TRAIN_LABELS_DIR", "train/labels")
+    
+    # YOLO inference settings - convert to float/int
+    YOLO_CONF_THRESHOLD = float(os.getenv("YOLO_CONF_THRESHOLD", "0.25"))
+    YOLO_IOU_THRESHOLD = float(os.getenv("YOLO_IOU_THRESHOLD", "0.7"))
+    YOLO_IMG_SIZE = int(os.getenv("YOLO_IMG_SIZE", "640"))
+    
+    # Void rate calculation settings - convert to float/int
+    VOID_RATE_THRESHOLD = float(os.getenv("VOID_RATE_THRESHOLD", "5.0"))  # Percentage threshold for chip usability
+    CHIP_CLASS_ID = int(os.getenv("CHIP_CLASS_ID", "0"))
+    HOLE_CLASS_ID = int(os.getenv("HOLE_CLASS_ID", "1"))
+    
+    # SAM settings
+    SAM_MODEL_TYPE = os.getenv("SAM_MODEL_TYPE", "vit_h")
+    SAM_CHECKPOINT_URL = os.getenv("SAM_CHECKPOINT_URL", "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth")
+    
+    # Training settings - convert to int
+    TRAINING_EPOCHS = int(os.getenv("TRAINING_EPOCHS", "100"))
+    TRAINING_BATCH_SIZE = int(os.getenv("TRAINING_BATCH_SIZE", "8"))
+    TRAINING_PATIENCE = int(os.getenv("TRAINING_PATIENCE", "30"))
+    
+    # Flask settings
+    FLASK_ENV = os.getenv("FLASK_ENV", "development")
+    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1", "yes", "on")
+    FLASK_HOST = os.getenv("FLASK_HOST", "127.0.0.1")
+    FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
+    FLASK_MAX_UPLOAD_SIZE = int(os.getenv("FLASK_MAX_UPLOAD_SIZE", "16"))  # MB
+    
+    # Logging settings
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_FILE = os.getenv("LOG_FILE", "").strip() or None
+    
+    @classmethod
+    def ensure_directories(cls):
+        """Ensure all required directories exist."""
+        directories = [
+            cls.MODELS_DIR,
+            cls.OUTPUT_DIR,
+            cls.RESULTS_DIR,
+            cls.INFERENCE_DIR,
+            cls.SAM_OUTPUT_DIR,
+            cls.TRAIN_IMAGES_DIR,
+            cls.TRAIN_LABELS_DIR,
+            cls.LOGS_DIR,
+        ]
+        for directory in directories:
+            directory.mkdir(parents=True, exist_ok=True)
+    
+    @classmethod
+    def load_data_config(cls) -> dict:
+        """Load data.yaml configuration."""
+        if not cls.DATA_YAML.exists():
+            raise FileNotFoundError(f"data.yaml not found at {cls.DATA_YAML}")
+        
+        with open(cls.DATA_YAML, 'r') as f:
+            return yaml.safe_load(f)
+    
+    @classmethod
+    def get_class_names(cls) -> dict:
+        """Get class names from data.yaml."""
+        data_config = cls.load_data_config()
+        return data_config.get('names', {})
+    
+    @classmethod
+    def get_num_classes(cls) -> int:
+        """Get number of classes from data.yaml."""
+        data_config = cls.load_data_config()
+        return data_config.get('nc', 2)
+
+
+# Initialize directories on import
+Config.ensure_directories()
+

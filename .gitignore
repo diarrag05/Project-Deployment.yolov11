@@ -1,8 +1,4 @@
-# YOLOv11 Segmentation Project - .gitignore
-
-# ========================================================================
-# Python & Environnements Virtuels
-# ========================================================================
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,141 +6,59 @@ __pycache__/
 .Python
 env/
 venv/
+yolo_env/
+.myenv/
 ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
+dist/
+build/
 *.egg
-MANIFEST
 
-# ========================================================================
-# IDE & Éditeurs
-# ========================================================================
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-*.sublime-project
-*.sublime-workspace
-.vim/
-
-# ========================================================================
-# Jupyter & Notebooks
-# ========================================================================
-.ipynb_checkpoints/
-*.ipynb_checkpoints
-
-# ========================================================================
-# Données & Modèles (volumineux)
-# ========================================================================
-# Modèles pré-entraînés
+# YOLOv11
+runs/
 *.pt
 *.pth
 *.onnx
-yolov11*.pt
+*.engine
+*.tflite
 
-# Résultats d'entraînement
-runs/
-!runs/.gitkeep
-
-# Résultats d'évaluation
-evaluations/
-!evaluations/.gitkeep
-
-# Résultats d'inférence
-inferences/
-!inferences/.gitkeep
-
-# Résultats void_rate
-void_rate_results/
-!void_rate_results/.gitkeep
+# Cache files
+*.cache
+labels.cache
 
 # Logs
 logs/
 *.log
-!logs/.gitkeep
+*.out
+events.out.tfevents.*
 
-# Images et données volumineuses
+# Data (images and videos - large files)
 *.jpg
 *.jpeg
 *.png
-*.tiff
 *.bmp
-!README_images/
-!docs/
+*.gif
+*.mp4
+*.avi
+*.mov
+*.mkv
 
-# ========================================================================
-# TensorBoard & Monitoring
-# ========================================================================
-events.out.tfevents*
-.tensorboard/
+# outputs
+outputs/
 
-# ========================================================================
-# OS Spécifique
-# ========================================================================
+# System
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
-ehthumbs.db
-Thumbs.db
-
-# ========================================================================
-# Système de Fichiers
-# ========================================================================
-*.tmp
-*.temp
-*.bak
-*.backup
-*.old
-
-# ========================================================================
-# Cache
-# ========================================================================
-.cache/
-*.cache
-
-# ========================================================================
-# Fichiers de Configuration Locaux
-# ========================================================================
-.env
-.env.local
-config.local.py
-settings.local.py
-
-# ========================================================================
-# Archives
-# ========================================================================
-*.zip
-*.tar
-*.gz
-*.rar
-
-# ========================================================================
-# Fichiers Temporaires
-# ========================================================================
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
-.#*
 
-# ========================================================================
-# Permissions (Linux/Mac)
-# ========================================================================
-.permissions
+# Temporary files
+*.tmp
+*.temp
+*.bak

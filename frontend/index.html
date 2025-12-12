@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chip-and-Hole Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            background: #e8e8e8;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 40px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .upload-text {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .preview-container {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            margin: 20px 0;
+        }
+
+        .results {
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .results h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-usable {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-not-usable {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: none;
+        }
+
+        .success.active {
+            display: block;
+        }
+
+        .image-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .image-item {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .image-item:hover {
+            transform: translateY(-5px);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .image-item-info {
+            padding: 15px;
+        }
+
+        .training-status {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+            margin: 20px 0;
+            cursor: crosshair;
+        }
+
+        .image-preview-container img {
+            max-width: 100%;
+            max-height: 600px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .point-marker {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            border: 3px solid white;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .point-marker:hover {
+            background: #764ba2;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .point-marker.foreground {
+            background: #28a745;
+        }
+
+        .point-marker.background {
+            background: #dc3545;
+        }
+
+        .points-controls {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .points-list {
+            margin: 15px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .point-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .point-item button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+
+        .point-item button:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔍 Chip-and-Hole Detection System</h1>
+            <p>Système de détection et d'analyse de chips électroniques</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('analyze')">Analyse</button>
+            <button class="tab" onclick="switchTab('segment')">Segmentation SAM</button>
+            <button class="tab" onclick="switchTab('training')">Réentraînement</button>
+        </div>
+
+        <!-- Tab: Analyze -->
+        <div id="analyze" class="tab-content active">
+            <h2>Analyse d'image avec YOLO</h2>
+            
+            <div class="form-group">
+                <label>Seuil de void rate (%)</label>
+                <input type="number" id="threshold" value="5.0" step="0.1" min="0" max="100">
+            </div>
+
+            <div class="upload-area" id="analyzeUploadArea" onclick="document.getElementById('analyzeFileInput').click()">
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Cliquez ou glissez-déposez une image ici</div>
+                <div style="color: #999; font-size: 0.9em;">Formats supportés: JPG, PNG, GIF, BMP</div>
+            </div>
+            <input type="file" id="analyzeFileInput" class="file-input" accept="image/*" onchange="handleAnalyzeFile(event)">
+
+            <div class="loading" id="analyzeLoading">
+                <div class="spinner"></div>
+                <p>Analyse en cours...</p>
+            </div>
+
+            <div class="error" id="analyzeError"></div>
+            <div class="success" id="analyzeSuccess"></div>
+
+            <div id="analyzeResults" class="results" style="display: none;">
+                <h3>Résultats de l'analyse</h3>
+                <div class="preview-container">
+                    <img id="analyzeResultImage" class="preview-image" alt="Résultat">
+                </div>
+                <div class="stats-grid" id="analyzeStats"></div>
+            </div>
+        </div>
+
+        <!-- Tab: Segment -->
+        <div id="segment" class="tab-content">
+            <h2>Segmentation avec SAM</h2>
+            
+            <div class="upload-area" id="segmentUploadArea" onclick="document.getElementById('segmentFileInput').click()">
+                <div class="upload-icon">🎯</div>
+                <div class="upload-text">Cliquez ou glissez-déposez une image ici</div>
+                <div style="color: #999; font-size: 0.9em;">Formats supportés: JPG, PNG, GIF, BMP</div>
+            </div>
+            <input type="file" id="segmentFileInput" class="file-input" accept="image/*" onchange="handleSegmentFile(event)">
+
+            <!-- Guided mode: Image preview and point selection -->
+            <div id="guidedModeContainer" style="display: none;">
+                <div class="points-controls">
+                    <h3>Mode guidé - Sélectionnez des points sur l'image</h3>
+                    <p style="color: #666; margin: 10px 0;">
+                        <strong>Instructions:</strong> Cliquez sur l'image pour ajouter des points. 
+                        Les points verts (foreground) indiquent ce que vous voulez segmenter, 
+                        les points rouges (background) indiquent ce que vous ne voulez pas.
+                    </p>
+                    <div style="margin: 15px 0;">
+                        <label>
+                            <input type="radio" name="pointType" value="foreground" checked> 
+                            Point foreground (vert) - À segmenter
+                        </label>
+                        <br>
+                        <label style="margin-top: 10px;">
+                            <input type="radio" name="pointType" value="background"> 
+                            Point background (rouge) - À exclure
+                        </label>
+                    </div>
+                    <div class="image-preview-container" id="imagePreviewContainer">
+                        <img id="previewImage" alt="Aperçu">
+                    </div>
+                    <div class="points-list" id="pointsList">
+                        <p style="color: #999; text-align: center; padding: 20px;">Aucun point sélectionné</p>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn" onclick="clearPoints()">Effacer tous les points</button>
+                        <button class="btn btn-success" onclick="launchGuidedSegmentation()" id="launchSegmentationBtn" disabled>
+                            Lancer la segmentation
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="segmentLoading">
+                <div class="spinner"></div>
+                <p>Segmentation en cours...</p>
+            </div>
+
+            <div class="error" id="segmentError"></div>
+            <div class="success" id="segmentSuccess"></div>
+
+            <div id="segmentResults" class="results" style="display: none;">
+                <h3>Résultats de la segmentation</h3>
+                <div class="preview-container">
+                    <img id="segmentResultImage" class="preview-image" alt="Résultat">
+                </div>
+                <div id="segmentStats"></div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-success" onclick="validateFromSegmentation()" id="validateSegmentationBtn">
+                        ✓ Valider cette segmentation pour le réentraînement
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Training -->
+        <div id="training" class="tab-content">
+            <h2>Réentraînement du modèle</h2>
+            
+            <div id="validatedCountInfo" class="training-status" style="margin-bottom: 30px;">
+                <h3>Images validées disponibles</h3>
+                <div id="validatedCountContent">
+                    <p>Chargement...</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Nombre d'époques</label>
+                <input type="number" id="epochs" value="100" min="1">
+            </div>
+
+            <div class="form-group">
+                <label>Taille du batch</label>
+                <input type="number" id="batchSize" value="8" min="1">
+            </div>
+
+            <div class="form-group">
+                <label>Patience (early stopping)</label>
+                <input type="number" id="patience" value="30" min="1">
+            </div>
+
+            <button class="btn btn-success" onclick="startTraining()">Démarrer le réentraînement</button>
+
+            <div class="error" id="trainingError"></div>
+            <div class="success" id="trainingSuccess"></div>
+
+            <div id="trainingStatus" class="training-status" style="display: none;">
+                <h3>Statut de l'entraînement</h3>
+                <div id="trainingStatusContent"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            // Load data for specific tabs
+            if (tabName === 'training') {
+                checkTrainingStatus();
+                updateValidatedCount();
+            }
+        }
+
+        // Drag and drop handlers
+        function setupDragAndDrop(uploadAreaId, fileInputId) {
+            const uploadArea = document.getElementById(uploadAreaId);
+            const fileInput = document.getElementById(fileInputId);
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    fileInput.dispatchEvent(new Event('change'));
+                }
+            });
+        }
+
+        setupDragAndDrop('analyzeUploadArea', 'analyzeFileInput');
+        setupDragAndDrop('segmentUploadArea', 'segmentFileInput');
+
+        // Analyze functions
+        function handleAnalyzeFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            analyzeImage(file);
+        }
+
+        async function analyzeImage(file) {
+            const threshold = document.getElementById('threshold').value;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('threshold', threshold);
+
+            showLoading('analyzeLoading');
+            hideError('analyzeError');
+            hideSuccess('analyzeSuccess');
+            hideResults('analyzeResults');
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur lors de l\'analyse');
+                }
+
+                displayAnalyzeResults(data);
+                showSuccess('analyzeSuccess', 'Analyse terminée avec succès!');
+            } catch (error) {
+                showError('analyzeError', error.message);
+            } finally {
+                hideLoading('analyzeLoading');
+            }
+        }
+
+        // Store current analysis data for CSV export
+        let currentAnalysisData = null;
+
+        function displayAnalyzeResults(data) {
+            // Store data for CSV export
+            currentAnalysisData = data;
+            
+            const stats = data.statistics;
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.void_rate_percent.toFixed(2)}%</div>
+                    <div class="stat-label">Void Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.num_chips}</div>
+                    <div class="stat-label">Chips détectées</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.num_holes}</div>
+                    <div class="stat-label">Trous détectés</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.chip_area_pixels.toLocaleString()}</div>
+                    <div class="stat-label">Aire chip (pixels)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.holes_area_pixels.toLocaleString()}</div>
+                    <div class="stat-label">Aire trous (pixels)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${(stats.average_confidence * 100).toFixed(1)}%</div>
+                    <div class="stat-label">Confiance moyenne</div>
+                </div>
+            `;
+
+            document.getElementById('analyzeStats').innerHTML = statsHtml;
+
+            // Display status badge
+            const statusBadge = data.is_usable 
+                ? '<span class="status-badge status-usable">✓ UTILISABLE</span>'
+                : '<span class="status-badge status-not-usable">✗ NON UTILISABLE</span>';
+            
+            document.getElementById('analyzeStats').innerHTML += `
+                <div class="stat-card" style="grid-column: 1 / -1;">
+                    ${statusBadge}
+                    <div style="margin-top: 10px; color: #666;">Seuil utilisé: ${data.threshold}%</div>
+                    <div style="margin-top: 5px; color: #666;">Temps de traitement: ${data.processing_time.toFixed(2)}s</div>
+                    <button onclick="downloadAnalysisCSV()" class="btn btn-primary" style="margin-top: 15px; width: 100%;">
+                        📥 Télécharger les résultats en CSV
+                    </button>
+                </div>
+            `;
+
+            // Display result image
+            const imagePath = encodeURIComponent(data.output_image_path);
+            document.getElementById('analyzeResultImage').src = `${API_BASE}/images/${imagePath}`;
+            
+            showResults('analyzeResults');
+        }
+
+        // Function to download CSV
+        async function downloadAnalysisCSV() {
+            if (!currentAnalysisData) {
+                showError('analyzeError', 'Aucune donnée d\'analyse disponible pour l\'export');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/analyze/export-csv`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        analysis_data: currentAnalysisData
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Erreur lors de l\'export CSV');
+                }
+
+                // Get CSV data and trigger download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `analysis_results_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showSuccess('analyzeSuccess', 'CSV téléchargé avec succès!');
+            } catch (error) {
+                showError('analyzeError', error.message);
+            }
+        }
+
+        // Store current segmentation data for validation
+        let currentSegmentationData = null;
+
+        async function validateFromSegmentation() {
+            if (!currentSegmentationData) {
+                showError('segmentError', 'Aucune segmentation disponible pour validation');
+                return;
+            }
+
+            hideError('segmentError');
+            hideSuccess('segmentSuccess');
+            
+            const btn = document.getElementById('validateSegmentationBtn');
+            btn.disabled = true;
+            btn.textContent = 'Validation en cours...';
+
+            try {
+                const requestBody = {
+                    image_path: currentSegmentationData.image_path,
+                    mode: 'guided' // Forced to guided mode
+                };
+
+                // Add points for guided mode
+                if (currentSegmentationData.points && currentSegmentationData.point_labels) {
+                    requestBody.points = currentSegmentationData.points;
+                    requestBody.point_labels = currentSegmentationData.point_labels;
+                } else if (selectedPoints.length > 0) {
+                    requestBody.points = selectedPoints.map(p => [p.x, p.y]);
+                    requestBody.point_labels = selectedPoints.map(p => p.label);
+                } else {
+                    throw new Error('Points requis pour la segmentation');
+                }
+
+                const response = await fetch(`${API_BASE}/validate/from-segmentation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur lors de la validation');
+                }
+
+                showSuccess('segmentSuccess', `Segmentation validée avec succès! ${data.num_masks} masque(s) détecté(s). ID: ${data.storage_id.substring(0, 8)}...`);
+                
+                // Update validated count if on training tab
+                if (document.getElementById('training').classList.contains('active')) {
+                    updateValidatedCount();
+                }
+            } catch (error) {
+                showError('segmentError', error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✓ Valider cette segmentation pour le réentraînement';
+            }
+        }
+
+        // Segment functions
+        let currentSegmentFile = null;
+        let selectedPoints = [];
+        let imageNaturalWidth = 0;
+        let imageNaturalHeight = 0;
+
+        function handleSegmentFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            currentSegmentFile = file;
+            // Toujours afficher l'aperçu pour le mode guidé
+            showImagePreview(file);
+        }
+
+        function showImagePreview(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.getElementById('previewImage');
+                img.src = e.target.result;
+                
+                img.onload = function() {
+                    imageNaturalWidth = img.naturalWidth;
+                    imageNaturalHeight = img.naturalHeight;
+                    
+                    // Clear previous points
+                    selectedPoints = [];
+                    updatePointsList();
+                    
+                    // Show guided mode container
+                    document.getElementById('guidedModeContainer').style.display = 'block';
+                    
+                    // Setup click handler for image
+                    const container = document.getElementById('imagePreviewContainer');
+                    container.onclick = function(event) {
+                        if (event.target === img) {
+                            addPoint(event, img);
+                        }
+                    };
+                };
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function addPoint(event, img) {
+            const rect = img.getBoundingClientRect();
+            const container = document.getElementById('imagePreviewContainer');
+            
+            // Calculate click position relative to image
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Convert to image coordinates (accounting for image scaling)
+            const scaleX = img.naturalWidth / rect.width;
+            const scaleY = img.naturalHeight / rect.height;
+            const imageX = Math.round(x * scaleX);
+            const imageY = Math.round(y * scaleY);
+            
+            // Get point type
+            const pointType = document.querySelector('input[name="pointType"]:checked').value;
+            const isForeground = pointType === 'foreground';
+            
+            // Add point
+            selectedPoints.push({
+                x: imageX,
+                y: imageY,
+                label: isForeground ? 1 : 0
+            });
+            
+            // Create visual marker
+            const marker = document.createElement('div');
+            marker.className = `point-marker ${isForeground ? 'foreground' : 'background'}`;
+            marker.style.left = `${x}px`;
+            marker.style.top = `${y}px`;
+            marker.onclick = function(e) {
+                e.stopPropagation();
+                removePoint(marker, imageX, imageY);
+            };
+            
+            container.appendChild(marker);
+            updatePointsList();
+            updateLaunchButton();
+        }
+
+        function removePoint(marker, x, y) {
+            marker.remove();
+            selectedPoints = selectedPoints.filter(p => !(p.x === x && p.y === y));
+            updatePointsList();
+            updateLaunchButton();
+        }
+
+        function clearPoints() {
+            selectedPoints = [];
+            const container = document.getElementById('imagePreviewContainer');
+            const markers = container.querySelectorAll('.point-marker');
+            markers.forEach(m => m.remove());
+            updatePointsList();
+            updateLaunchButton();
+        }
+
+        function updatePointsList() {
+            const list = document.getElementById('pointsList');
+            if (selectedPoints.length === 0) {
+                list.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Aucun point sélectionné</p>';
+                return;
+            }
+            
+            list.innerHTML = selectedPoints.map((point, index) => {
+                const type = point.label === 1 ? 'Foreground (vert)' : 'Background (rouge)';
+                return `
+                    <div class="point-item">
+                        <span>Point ${index + 1}: (${point.x}, ${point.y}) - ${type}</span>
+                        <button onclick="removePointByIndex(${index})">Supprimer</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function removePointByIndex(index) {
+            if (index >= 0 && index < selectedPoints.length) {
+                const point = selectedPoints[index];
+                selectedPoints.splice(index, 1);
+                
+                // Remove visual marker - need to find the correct one
+                const container = document.getElementById('imagePreviewContainer');
+                const markers = container.querySelectorAll('.point-marker');
+                // Find marker at the same position (approximate match)
+                const img = document.getElementById('previewImage');
+                const rect = img.getBoundingClientRect();
+                const scaleX = rect.width / imageNaturalWidth;
+                const scaleY = rect.height / imageNaturalHeight;
+                
+                Array.from(markers).forEach((marker, i) => {
+                    const markerX = parseFloat(marker.style.left);
+                    const markerY = parseFloat(marker.style.top);
+                    const expectedX = point.x * scaleX;
+                    const expectedY = point.y * scaleY;
+                    
+                    // Check if this marker is close to the point position
+                    if (Math.abs(markerX - expectedX) < 5 && Math.abs(markerY - expectedY) < 5) {
+                        marker.remove();
+                    }
+                });
+                
+                updatePointsList();
+                updateLaunchButton();
+            }
+        }
+
+        function updateLaunchButton() {
+            const btn = document.getElementById('launchSegmentationBtn');
+            btn.disabled = selectedPoints.length === 0;
+        }
+
+        async function launchGuidedSegmentation() {
+            if (!currentSegmentFile || selectedPoints.length === 0) {
+                showError('segmentError', 'Veuillez sélectionner au moins un point sur l\'image');
+                return;
+            }
+
+            await segmentImage(currentSegmentFile, 'guided');
+        }
+
+        async function segmentImage(file, mode) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', 'guided');  // Toujours 'guided'
+
+            // Toujours inclure les points
+            const points = selectedPoints.map(p => [p.x, p.y]);
+            const pointLabels = selectedPoints.map(p => p.label);
+            formData.append('points', JSON.stringify(points));
+            formData.append('point_labels', JSON.stringify(pointLabels));
+
+            showLoading('segmentLoading');
+            hideError('segmentError');
+            hideSuccess('segmentSuccess');
+            hideResults('segmentResults');
+
+            try {
+                const response = await fetch(`${API_BASE}/segment`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur lors de la segmentation');
+                }
+
+                displaySegmentResults(data);
+                showSuccess('segmentSuccess', 'Segmentation terminée avec succès!');
+            } catch (error) {
+                showError('segmentError', error.message);
+            } finally {
+                hideLoading('segmentLoading');
+            }
+        }
+
+        function displaySegmentResults(data) {
+            // Store for validation - include all necessary data
+            currentSegmentationData = {
+                image_path: data.image_path,
+                mode: data.mode,
+                points: data.points || null,
+                point_labels: data.point_labels || null
+            };
+            
+            const statsHtml = `
+                <div class="stat-card">
+                    <div class="stat-value">${data.num_masks}</div>
+                    <div class="stat-label">Masques générés</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${data.mode}</div>
+                    <div class="stat-label">Mode</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${data.processing_time.toFixed(2)}s</div>
+                    <div class="stat-label">Temps de traitement</div>
+                </div>
+            `;
+
+            document.getElementById('segmentStats').innerHTML = statsHtml;
+
+            // Display result image
+            const imagePath = encodeURIComponent(data.output_image_path);
+            document.getElementById('segmentResultImage').src = `${API_BASE}/images/${imagePath}`;
+            
+            showResults('segmentResults');
+        }
+
+        // Training functions
+        async function startTraining() {
+            const epochs = document.getElementById('epochs').value;
+            const batchSize = document.getElementById('batchSize').value;
+            const patience = document.getElementById('patience').value;
+
+            hideError('trainingError');
+            hideSuccess('trainingSuccess');
+
+            try {
+                const response = await fetch(`${API_BASE}/retrain`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        epochs: parseInt(epochs),
+                        batch_size: parseInt(batchSize),
+                        patience: parseInt(patience),
+                        move_validated: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur lors du démarrage de l\'entraînement');
+                }
+
+                showSuccess('trainingSuccess', `Entraînement démarré! ID: ${data.training_id}`);
+                checkTrainingStatus();
+            } catch (error) {
+                showError('trainingError', error.message);
+            }
+        }
+
+        async function checkTrainingStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/training/status`);
+                const data = await response.json();
+
+                if (!response.ok && !data.training_id) {
+                    document.getElementById('trainingStatus').style.display = 'none';
+                    return;
+                }
+
+                if (data.training_id) {
+                    displayTrainingStatus(data);
+                } else {
+                    document.getElementById('trainingStatus').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking training status:', error);
+            }
+        }
+
+        function displayTrainingStatus(data) {
+            const progress = data.total_epochs > 0 
+                ? (data.epochs_completed / data.total_epochs) * 100 
+                : 0;
+
+            // Calculate elapsed time
+            let elapsedTime = '';
+            if (data.start_time) {
+                const start = new Date(data.start_time);
+                const now = new Date();
+                const elapsed = Math.floor((now - start) / 1000); // seconds
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                elapsedTime = `${minutes}m ${seconds}s`;
+            }
+
+            let progressInfo = '';
+            if (data.status === 'in_progress' && data.epochs_completed === 0) {
+                progressInfo = '<p style="color: #666; font-style: italic;">L\'entraînement est en cours... La progression sera mise à jour automatiquement.</p>';
+            }
+
+            const statusHtml = `
+                <p><strong>Statut:</strong> ${data.status === 'in_progress' ? '🔄 En cours' : data.status}</p>
+                <p><strong>ID:</strong> ${data.training_id}</p>
+                <p><strong>Époques:</strong> ${data.epochs_completed} / ${data.total_epochs}</p>
+                ${elapsedTime ? `<p><strong>Temps écoulé:</strong> ${elapsedTime}</p>` : ''}
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: ${Math.max(progress, 1)}%">
+                        ${progress > 0 ? progress.toFixed(1) + '%' : 'Démarrage...'}
+                    </div>
+                </div>
+                ${progressInfo}
+                ${data.start_time ? `<p><strong>Début:</strong> ${new Date(data.start_time).toLocaleString()}</p>` : ''}
+                ${data.end_time ? `<p><strong>Fin:</strong> ${new Date(data.end_time).toLocaleString()}</p>` : ''}
+                ${data.best_model_path ? `<p><strong>Modèle:</strong> ${data.best_model_path}</p>` : ''}
+                ${data.error_message ? `<p style="color: red;"><strong>Erreur:</strong> ${data.error_message}</p>` : ''}
+            `;
+
+            document.getElementById('trainingStatusContent').innerHTML = statusHtml;
+            document.getElementById('trainingStatus').style.display = 'block';
+
+            // Auto-refresh if training is in progress
+            if (data.status === 'in_progress') {
+                setTimeout(checkTrainingStatus, 5000);
+            }
+        }
+
+
+        async function updateValidatedCount() {
+            try {
+                const response = await fetch(`${API_BASE}/validated-images`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const count = data.count || 0;
+                    const contentDiv = document.getElementById('validatedCountContent');
+                    if (contentDiv) {
+                        contentDiv.innerHTML = `
+                            <p><strong>${count}</strong> image(s) validée(s) en attente de réentraînement</p>
+                            ${count > 0 ? '<p style="color: #666; font-size: 0.9em;">Ces images seront ajoutées au dataset d\'entraînement lors du réentraînement.</p>' : '<p style="color: #999; font-size: 0.9em;">Aucune image validée. Validez des images depuis l\'onglet "Segmentation SAM".</p>'}
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating validated count:', error);
+            }
+        }
+
+        // Utility functions
+        function showLoading(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function hideLoading(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showError(id, message) {
+            const el = document.getElementById(id);
+            el.textContent = message;
+            el.classList.add('active');
+        }
+
+        function hideError(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showSuccess(id, message) {
+            const el = document.getElementById(id);
+            el.textContent = message;
+            el.classList.add('active');
+        }
+
+        function hideSuccess(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        function showResults(id) {
+            document.getElementById(id).style.display = 'block';
+        }
+
+        function hideResults(id) {
+            document.getElementById(id).style.display = 'none';
+        }
+
+        // Auto-check training status on load
+        window.addEventListener('load', () => {
+            checkTrainingStatus();
+            updateValidatedCount();
+        });
+    </script>
+</body>
+</html>
+
