@@ -2,7 +2,9 @@ train: ../dataset/train/images
 val: ../dataset/valid/images
 test: ../dataset/test/images
 
+# Number of classes
 nc: 2
+
 # Class names
 names:
   0: chip

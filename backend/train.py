@@ -117,7 +117,7 @@ def get_base_model_path() -> tuple[str, bool]:
     best_model = Path('models/best.pt')
     
     if not best_model.exists():
-        return ("yolo11s-seg.pt", False)
+        return ("models/yolo11s-seg.pt", False)
     else:
         return (str(best_model), True)
 
