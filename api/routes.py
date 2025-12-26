@@ -27,10 +27,12 @@ from backend.src.services import (
 from api.sam_manager import get_sam_service
 from backend.src.config import Config
 from backend.src.utils.image_utils import load_image
+from backend.src.utils.logger import get_logger
 from api.storage import StorageManager
 from api.training_job import TrainingJobManager
 
 router = APIRouter()
+logger = get_logger(__name__)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 
@@ -134,15 +136,11 @@ async def analyze_image(
         raise
     except FileNotFoundError as e:
         # Model or file not found
-        from backend.src.utils.logger import get_logger
-        logger = get_logger(__name__)
         logger.error(f"File not found error: {e}")
         raise HTTPException(status_code=404, detail=f"File not found: {str(e)}")
     except Exception as e:
         # Log full error for debugging
-        from backend.src.utils.logger import get_logger
         import traceback
-        logger = get_logger(__name__)
         logger.error(f"Error analyzing image: {e}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Error analyzing image: {str(e)}")
 

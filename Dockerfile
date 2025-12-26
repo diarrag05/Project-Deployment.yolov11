@@ -39,8 +39,8 @@ ENV PYTHONUNBUFFERED=1
 ENV FASTAPI_ENV=production
 ENV FASTAPI_DEBUG=False
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+# Health check - increased start-period to allow more time for app startup
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
 # Run the application
