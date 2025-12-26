@@ -1,39 +1,89 @@
-# Projet de Détection de Chips et Trous (YOLOv11)
+# Chip and Void Detection System (YOLOv11)
 
-Application Flask pour l'analyse d'images de composants électroniques avec détection automatique de chips et de trous, calcul du taux de vide (void rate) et segmentation assistée par SAM (Segment Anything Model).
+FastAPI application for automatic detection and segmentation of electronic components (chips) and defects (holes/voids) using YOLOv11 segmentation, with manual correction via SAM (Segment Anything Model) and active learning capabilities.
 
-## 📋 Table des matières
+## 📋 Table of Contents
 
-- [Prérequis](#prérequis)
+- [Overview](#overview)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Configuration](#configuration)
-- [Démarrage de l'application](#démarrage-de-lapplication)
-- [Scénarios d'utilisation](#scénarios-dutilisation)
-- [YOLOv11 Fine-tuning: Complete Guide](#-yolov11-fine-tuning-complete-guide)
-- [Scripts d'entraînement et d'évaluation](#-scripts-dentraînement-et-dévaluation)
-- [Explication des calculs](#explication-des-calculs)
-- [Structure du projet](#structure-du-projet)
-- [Notes importantes](#notes-importantes)
-- [Endpoints API](#endpoints-api-principaux)
+- [Getting Started](#getting-started)
+- [Usage Workflow](#usage-workflow)
+- [API Endpoints](#api-endpoints)
+- [Calculations Explained](#calculations-explained)
+- [Project Structure](#project-structure)
+- [Training](#training)
+- [Troubleshooting](#troubleshooting)
 
-## 🔧 Prérequis
+## 🎯 Overview
 
-- Python 3.8 ou supérieur
-- pip (gestionnaire de paquets Python)
-- GPU NVIDIA avec CUDA (recommandé pour l'entraînement et l'inférence rapide)
-  - Alternative : CPU (plus lent mais fonctionnel)
-  - Alternative : Apple Silicon avec MPS (supporté)
+This is a **complete integrated system** for automatic defect detection and quality control in electronic component manufacturing. The project combines YOLOv11 segmentation fine-tuning with an active learning web application.
+
+### Complete Project Workflow
+
+```
+1. Initial Dataset Preparation (Roboflow)
+   ↓
+   • Label images on Roboflow platform
+   • Export in YOLO segmentation format
+   • Download dataset (train/val/test splits)
+   ↓
+2. YOLO Model Fine-tuning
+   ↓
+   • Fine-tune YOLOv11-segmentation on labeled dataset
+   • Generate best.pt model
+   ↓
+3. Web Application (FastAPI + Frontend)
+   ↓
+   • Upload images for analysis
+   • YOLO automatic detection and segmentation
+   • SAM manual correction (if needed)
+   • Validation and save corrected images
+   ↓
+4. Active Learning Loop
+   ↓
+   • Retrain model with validated images
+   • Improve model performance iteratively
+```
+
+### Key Components
+
+- **YOLOv11 Segmentation**: Pre-trained model fine-tuned on your labeled dataset from Roboflow
+- **SAM (Segment Anything Model)**: Manual correction tool for refining segmentation masks
+- **Active Learning**: Continuous improvement through user corrections and model retraining
+- **Void Rate Calculation**: Automatic quality assessment (USABLE/NOT USABLE) based on defect percentage
+
+## ✨ Features
+
+- ✅ **Automatic Detection**: YOLOv11-segmentation for real-time chip and hole detection
+- ✅ **Manual Correction**: SAM-guided segmentation for precise mask correction
+- ✅ **Active Learning**: Validated images automatically added to training dataset
+- ✅ **Quality Assessment**: Automatic void rate calculation and usability determination
+- ✅ **Model Retraining**: One-click retraining with validated data
+- ✅ **CSV Export**: Export analysis results in standardized format
+- ✅ **Web Interface**: Modern, user-friendly interface
+- ✅ **API Documentation**: Auto-generated OpenAPI/Swagger documentation
+
+## 🔧 Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+- **Recommended**: NVIDIA GPU with CUDA (for faster training and inference)
+- **Alternative**: CPU (slower but functional)
+- **Note**: Apple Silicon (MPS) is disabled for training due to compatibility issues with YOLO segmentation
 
 ## 📦 Installation
 
-### 1. Cloner le projet
+### 1. Clone the repository
 
 ```bash
-git clone <url-du-repo>
+git clone <repository-url>
 cd Project-Deployment.yolov11
 ```
 
-### 2. Créer un environnement virtuel (recommandé)
+### 2. Create a virtual environment (recommended)
 
 ```bash
 # Windows
@@ -45,165 +95,363 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Installer les dépendances
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Note importante** : L'installation peut prendre plusieurs minutes car elle inclut :
-- PyTorch et ses dépendances
+**Note**: Installation may take several minutes as it includes:
+- PyTorch and dependencies
 - Ultralytics (YOLOv11)
-- Segment Anything Model (SAM) depuis GitHub
+- Segment Anything Model (SAM) from GitHub
 
-### 4. Vérifier la configuration
+### 4. Verify configuration
 
-Le fichier `.env` est déjà présent dans le projet avec les paramètres par défaut. Vous pouvez le modifier si nécessaire (voir section [Configuration](#configuration)).
+The `.env` file is already present with default settings. You can modify it if needed (see [Configuration](#configuration)).
 
 ## ⚙️ Configuration
 
-Le projet utilise un fichier `.env` pour la configuration. Les valeurs par défaut sont déjà définies, mais vous pouvez les personnaliser :
+The project uses a `.env` file for configuration. Default values are already set, but you can customize them:
 
-### Variables principales
+### Main Variables
 
-- `FLASK_HOST` : Adresse IP du serveur (défaut: `127.0.0.1`)
-- `FLASK_PORT` : Port du serveur (défaut: `5000`)
-- `FLASK_DEBUG` : Mode debug (défaut: `True`)
-- `TRAINING_EPOCHS` : Nombre d'époques pour l'entraînement (défaut: `100`)
-- `TRAINING_BATCH_SIZE` : Taille du batch (défaut: `8`)
-- `TRAINING_PATIENCE` : Patience pour l'early stopping (défaut: `30`)
-- `VOID_RATE_THRESHOLD` : Seuil de void rate en pourcentage (défaut: `5.0`)
+- `FASTAPI_HOST`: Server IP address (default: `localhost`)
+- `FASTAPI_PORT`: Server port (default: `5001`)
+- `FASTAPI_DEBUG`: Debug mode (default: `True`)
+- `TRAINING_EPOCHS`: Number of training epochs (default: `100`)
+- `TRAINING_BATCH_SIZE`: Batch size (default: `8`)
+- `TRAINING_PATIENCE`: Early stopping patience (default: `30`)
+- `VOID_RATE_THRESHOLD`: Void rate threshold percentage (default: `5.0`)
+- `YOLO_CONF_THRESHOLD`: YOLO confidence threshold (default: `0.25`)
 
-Voir `backend/src/config.py` pour la liste complète des variables configurables.
+See `backend/src/config.py` for the complete list of configurable variables.
 
-## 🚀 Démarrage de l'application
+## 🚀 Getting Started
 
-### Option 1 : Via le script de démarrage (recommandé)
+### Start the Application
 
 ```bash
 python api/run_api.py
 ```
 
-### Option 2 : Via le module Flask directement
+The application will be available at:
+- **Web Interface**: `http://localhost:5001/`
+- **API Documentation**: `http://localhost:5001/docs`
+- **Health Check**: `http://localhost:5001/health`
 
-```bash
-python api/app.py
+### First-Time Setup
+
+**Scenario 1: No trained model exists**
+
+If `models/best.pt` doesn't exist:
+1. The first image analysis will trigger automatic initial training
+2. You'll receive a 503 response with a training ID
+3. Wait for training to complete (check status via `/api/training/status/<training_id>`)
+4. Once complete, you can analyze images normally
+
+**Scenario 2: Trained model exists**
+
+If `models/best.pt` exists:
+- Analysis works immediately with the fine-tuned model
+- No training is triggered automatically
+
+## 📊 Usage Workflow
+
+### Step 1: YOLO Analysis
+
+1. Upload an image via the web interface
+2. YOLO automatically detects and segments:
+   - **Chips** (class 0): Electronic components
+   - **Holes** (class 1): Defects/voids within components
+3. Results displayed:
+   - Number of components found
+   - Number of defects found
+   - Defect rate (void %)
+   - Component status (USABLE / NOT USABLE)
+   - Visualized masks and bounding boxes
+
+### Step 2: SAM Correction (Optional)
+
+If YOLO results need correction:
+
+1. Select the class to segment (Chip or Hole)
+2. Click on the image to add points:
+   - **Foreground points** (green): Areas to include in the mask
+   - **Background points** (red): Areas to exclude from the mask
+3. SAM generates corrected segmentation masks
+4. Review and adjust as needed
+
+### Step 3: Validation
+
+1. Click "Validate and Continue" to save the corrected image
+2. The image and its labels are saved to `outputs/validated_images/`
+3. These images will be used for the next retraining
+
+### Step 4: Retraining
+
+1. Click "Start Retraining" when you have enough validated images
+2. The training process:
+   - Moves validated images to the training dataset
+   - Retrains the YOLO model (fine-tuning from `best.pt` if it exists)
+   - Saves the new model as `models/best.pt`
+3. Monitor progress via the training status section
+
+## 🔗 API Endpoints
+
+### Analysis
+
+- `POST /api/analyze` - Analyze an image with YOLO
+  - Input: Image file (multipart/form-data), optional threshold
+  - Output: Detection results, masks, statistics
+
+- `POST /api/analyze/batch` - Analyze multiple images with YOLO
+  - Input: Multiple image files (multipart/form-data), optional threshold
+  - Output: List of analysis results
+
+- `POST /api/analyze/export-csv` - Export analysis results to CSV
+  - Input: Analysis data (JSON)
+  - Output: CSV file
+
+### Segmentation
+
+- `POST /api/segment` - Segment image using SAM
+  - Input: Image file, points, point labels, optional class_id
+  - Output: Segmentation masks
+
+### Validation
+
+- `POST /api/validate/from-segmentation` - Validate and save corrected image from SAM
+  - Input: Image path, points, labels, class ID (FormData)
+  - Output: Validation confirmation
+
+- `POST /api/validate` - Validate and save an image with corrected labels
+  - Input: Image file or path, labels (JSON), metadata (FormData)
+  - Output: Validation confirmation
+
+### Training
+
+- `POST /api/retrain` - Start model retraining
+  - Input: Optional epochs, batch_size, patience, move_validated (JSON body)
+  - Output: Training ID
+
+- `GET /api/training/status` - Get training status
+  - Input: Training ID (query parameter, optional - returns latest if not provided)
+  - Output: Status, progress, metrics
+
+### Data Management
+
+- `GET /api/validated-images` - Get list of validated images waiting for retraining
+  - Output: List of validated images with metadata
+
+- `GET /api/results/export` - Export results (CSV or JSON)
+  - Input: Format query parameter (csv or json, default: csv)
+  - Output: Exported file
+
+- `GET /api/images/{image_path:path}` - Serve image files
+  - Input: Relative path to image
+  - Output: Image file
+
+### Health
+
+- `GET /health` - Health check endpoint
+
+### Documentation
+
+- `GET /docs` - Swagger UI documentation
+- `GET /redoc` - ReDoc documentation
+- `GET /openapi.json` - OpenAPI schema
+
+## 📐 Calculations Explained
+
+### Void Rate Calculation
+
+The **void rate** determines whether a component is **USABLE** or **NOT USABLE**.
+
+**Formula:**
+```
+Void Rate (%) = (Total Holes Area / Total Chips Area) × 100
 ```
 
-### Option 3 : Via Flask CLI
+**Determination:**
+- If `Void Rate < Threshold` (default: 5%) → **USABLE** ✅
+- If `Void Rate ≥ Threshold` (default: 5%) → **NOT USABLE** ❌
+- If no chips detected → **NOT USABLE** ❌
 
-```bash
-cd api
-flask run
+**Important**: The status is **NOT** based on model confidence. It's purely based on the void rate calculation.
+
+### Example Calculation
+
+```
+Image with:
+- 2 chips detected: Chip A (1000 px²), Chip B (800 px²)
+- 3 holes detected: Hole 1 (20 px²), Hole 2 (30 px²), Hole 3 (50 px²)
+
+Global calculations:
+- Total Area = 1000 + 800 = 1800 px²
+- Void % = (20 + 30 + 50) / 1800 × 100 = 5.56%
+- Max.void % = 50 / 1800 × 100 = 2.78%
+
+Per-component calculations:
+Chip A:
+- Area = 1000 px²
+- Void % = (20 + 30) / 1000 × 100 = 5.0%
+- Status: USABLE (5.0% < 5.0% threshold)
+
+Chip B:
+- Area = 800 px²
+- Void % = 50 / 800 × 100 = 6.25%
+- Status: NOT USABLE (6.25% > 5.0% threshold)
 ```
 
-L'application sera accessible sur `http://127.0.0.1:5000` (ou l'adresse configurée dans `.env`).
+### Metrics
 
-### Interface web
+- **Area**: Total chip area in pixels²
+- **Void %**: Percentage of chip area occupied by holes
+- **Max.void %**: Percentage of chip area occupied by the largest single hole
+- **Average Confidence**: Average model confidence (informational only, not used for status)
 
-Ouvrez votre navigateur et accédez à :
-- **Interface principale** : `http://127.0.0.1:5000/`
-- **Health check** : `http://127.0.0.1:5000/health`
-- **API endpoints** : `http://127.0.0.1:5000/api/...`
+## 📁 Project Structure
 
-## 📊 Scénarios d'utilisation
+```
+Project-Deployment.yolov11/
+├── api/                    # FastAPI application and routes
+│   ├── main.py            # FastAPI app configuration
+│   ├── routes.py          # API endpoints
+│   ├── run_api.py         # Startup script
+│   ├── storage.py         # Validated image storage management
+│   ├── training_job.py    # Training job management
+│   └── sam_manager.py     # SAM model singleton manager
+│
+├── backend/               # Business logic
+│   ├── src/
+│   │   ├── config.py      # Centralized configuration
+│   │   ├── services/      # Business services
+│   │   │   ├── yolo_inference.py
+│   │   │   ├── void_rate_calculator.py
+│   │   │   ├── sam_segmentation.py
+│   │   │   ├── training_service.py
+│   │   │   └── label_manager.py
+│   │   ├── schemas/       # Data models
+│   │   └── utils/         # Utilities
+│   └── train.py           # Training script
+│
+├── dataset/               # Training dataset (included)
+│   ├── data.yaml          # YOLO configuration
+│   ├── train/             # Training images and labels
+│   ├── valid/             # Validation images and labels
+│   └── test/              # Test images and labels
+│
+├── models/                # Trained models
+│   ├── best.pt            # Fine-tuned YOLO model (generated after training)
+│   └── sam_vit_h_4b8939.pth  # SAM model (downloaded automatically)
+│
+├── outputs/               # Results and outputs
+│   ├── uploads/           # Temporarily uploaded images
+│   ├── inference/         # YOLO inference results
+│   ├── sam_segmentation/  # SAM segmentation results
+│   ├── results/           # Analysis results
+│   └── validated_images/  # Validated images and labels
+│
+├── logs/                  # Log files
+│   ├── app.log            # Application logs
+│   └── training.log       # Training logs
+│
+├── frontend/              # Web interface
+│   └── index.html         # User interface
+│
+├── requirements.txt       # Python dependencies
+├── .env                   # Environment variables (included)
+└── README.md             # This file
+```
 
-### Scénario 1 : Premier démarrage (aucun modèle)
+## 🎓 Project Workflow: From Roboflow to Production
 
-**Situation** : Vous clonez le projet pour la première fois, le dossier `models/` ne contient pas de modèle finetuné (`best.pt`).
+### Step 1: Dataset Preparation with Roboflow
 
-**Comportement automatique** :
-1. L'utilisateur tente une analyse d'image via l'API
-2. L'API détecte l'absence de `models/best.pt`
-3. **L'entraînement initial est lancé automatiquement en arrière-plan**
-4. L'API retourne une erreur **503** avec le message :
-   ```json
-   {
-     "error": "No model found. Initial training has been started automatically.",
-     "training_id": "<uuid>",
-     "message": "Please wait for training to complete, then try again."
-   }
-   ```
-5. L'utilisateur doit attendre la fin de l'entraînement avant de pouvoir analyser des images
+**Initial Setup**:
+1. Upload your images to Roboflow platform
+2. Label images manually:
+   - Draw polygons around **chips** (components)
+   - Draw polygons around **holes** (defects/voids)
+3. Export dataset in YOLO segmentation format
+4. Download the dataset (already included in `dataset/` folder)
 
-**Durée estimée** : L'entraînement initial peut prendre de 30 minutes à plusieurs heures selon :
-- La puissance du GPU/CPU
-- Le nombre d'époques configuré
-- La taille du dataset
+**Dataset Structure** (from Roboflow export):
+```
+dataset/
+├── data.yaml          # YOLO configuration (classes, paths)
+├── train/
+│   ├── images/       # Training images
+│   └── labels/       # YOLO format labels (polygons)
+├── valid/
+│   ├── images/       # Validation images
+│   └── labels/       # YOLO format labels
+└── test/
+    ├── images/       # Test images
+    └── labels/       # YOLO format labels
+```
 
-**Suivi de l'entraînement** :
-- Consultez les logs dans `logs/training.log`
-- Utilisez l'endpoint `/api/training/status/<training_id>` pour vérifier le statut
-
-### Scénario 2 : Modèle existant
-
-**Situation** : Le fichier `models/best.pt` existe déjà.
-
-**Comportement** :
-- L'analyse fonctionne normalement avec le modèle finetuné
-- Aucun entraînement n'est déclenché
-- Les performances sont optimales
-
-### Scénario 3 : Réentraînement
-
-**Situation** : L'utilisateur souhaite réentraîner le modèle avec de nouvelles données.
-
-**Comportement automatique** :
-- Si `models/best.pt` existe : **fine-tuning** (entraînement continu depuis le modèle existant)
-- Si `models/best.pt` n'existe pas : **entraînement depuis zéro** avec `models/yolo11s-seg.pt` (téléchargé automatiquement)
-
-**Important** : 
-- Le modèle réentraîné **écrase** le précédent `best.pt`
-- Il n'y a pas besoin de checkbox pour forcer le modèle pré-entraîné, l'application gère automatiquement
-
-**Lancement du réentraînement** :
-- Via l'API : `POST /api/training/retrain`
-- Via le script : `python backend/train.py --epochs 100 --batch 8 --patience 30`
-
-## 🎓 YOLOv11 Fine-tuning: Complete Guide
-
-### Introduction
-
-This project implements an **automatic defect detection and segmentation system** for electronic components using the **YOLOv11-segmentation** model. The main objective is to identify components (chips) and defects (holes/voids) present in these components, then automatically calculate the **void rate** for quality assessment.
-
-### Why this project?
-
-In the electronics industry, **voids in solder joints** can cause component failures. Automatic detection of these defects is crucial for:
-- 🔍 Automated quality control
-- 📊 Void rate calculation
-- ⚡ Reduction of manual inspection costs
-- 🎯 Improvement of product reliability
-
-### Dataset and Data Preparation
-
-#### Data Source
-- **Origin**: Custom dataset of electronic components with defects
-- **Annotation Tool**: Roboflow platform
-- **Annotation Process**: Manual polygon-based annotation for each component (chip) and defect (hole/void)
-- **Export Format**: YOLOv11 segmentation format (normalized polygon coordinates)
-
-#### Annotation Format
-
-**YOLO Segmentation Format** (normalized polygons):
+**Annotation Format** (YOLO Segmentation):
 ```
 class_id x1 y1 x2 y2 x3 y3 ... xn yn
 ```
+- Coordinates are normalized (0.0 to 1.0)
+- Example: `1 0.4527 0.3892 0.4634 0.3901 ...` (hole annotation)
 
-Example of a hole annotation:
-```
-1 0.4527 0.3892 0.4634 0.3901 0.4729 0.3987 0.4527 0.3892
-```
-- `1` = class "hole-JsHt"
-- (x, y) coordinates normalized between 0 and 1
+### Step 2: YOLO Model Fine-tuning
 
-#### Dataset Distribution
+Once you have the labeled dataset from Roboflow, fine-tune the YOLOv11-segmentation model:
+
+```bash
+python backend/train.py
+```
+
+**What happens**:
+- Loads pre-trained YOLOv11s-seg model
+- Fine-tunes on your labeled dataset
+- Saves best model to `models/best.pt`
+- This model will be used by the web application
+
+### Step 3: Web Application Deployment
+
+Start the FastAPI application:
+
+```bash
+python api/run_api.py
+```
+
+**The application**:
+- Uses the fine-tuned `models/best.pt` for automatic detection
+- Provides web interface for image analysis
+- Allows manual correction with SAM
+- Implements active learning workflow
+
+### Step 4: Active Learning Loop
+
+**Continuous Improvement**:
+1. User uploads images → YOLO detects chips and holes
+2. If detection is incorrect → User corrects with SAM
+3. User validates corrected image → Saved to `outputs/validated_images/`
+4. When enough images validated → Retrain model
+5. New model improves → Better detection on future images
+
+### Why This Project?
+
+In the electronics industry, **voids in solder joints** can cause component failures. This integrated system provides:
+- 🔍 Automated quality control
+- 📊 Void rate calculation
+- ⚡ Reduction of manual inspection costs
+- 🎯 Continuous model improvement through active learning
+
+#### Current Dataset (from Roboflow)
 
 | Split | Number of images | Percentage |
 |-------|-----------------|------------|
-| **Train** | 66 | 68% |
-| **Validation** | 20 | 21% |
-| **Test** | 11 | 11% |
-| **Total** | **97** | **100%** |
+| **Train** | 72 | ~70% |
+| **Validation** | 20 | ~20% |
+| **Test** | 11 | ~10% |
+| **Total** | **~103** | **100%** |
 
 #### Classes
 
@@ -211,6 +459,8 @@ Example of a hole annotation:
 |----|------------|-------------|
 | 0 | `chip` | Electronic components |
 | 1 | `hole-JsHt` | Holes/voids in components |
+
+**Note**: The dataset in `dataset/` folder is the initial labeled dataset from Roboflow. As you use the application and validate corrected images, new images are added to the training set for continuous improvement.
 
 ### Architecture and Technologies
 
@@ -222,7 +472,8 @@ Example of a hole annotation:
 | **Ultralytics** | ≥8.0.0 | YOLOv11 framework |
 | **PyTorch** | ≥2.0.0 | Deep learning backend |
 | **OpenCV** | ≥4.8.0 | Image processing |
-| **Matplotlib** | ≥3.7.0 | Visualization |
+| **FastAPI** | ≥0.104.0 | Web framework |
+| **SAM** | Latest | Segment Anything Model |
 
 #### YOLOv11-Segmentation Model
 
@@ -238,252 +489,199 @@ Example of a hole annotation:
 - **Head**: Dual heads for detection + segmentation
 - **Output**: Bounding boxes + segmentation masks
 
-### Work Completed
+### Initial Model Training (One-Time Setup)
 
-#### Step 1: Exploration and Understanding
-**Objective**: Understand YOLOv11 fine-tuning and analyze data
+After downloading your labeled dataset from Roboflow, train the initial model:
 
-**Actions performed**:
-- 📹 Study of video tutorial on YOLOv11 fine-tuning
-- 📂 Analysis of dataset structure (97 images, segmentation format)
-- 🔍 Verification of annotations (polygons vs bounding boxes)
-- 📊 Statistics: 2 classes, train/val/test distribution
-
-**Results**:
-```
-Dataset Statistics:
-- Total images: 97
-- Train: 66 images (68%)
-- Validation: 20 images (21%)
-- Test: 11 images (11%)
-- Classes: chip, hole-JsHt
-- Format: YOLOv11 segmentation (polygons)
-```
-
-#### Step 2: Model Selection
-**Problem**: Choose between YOLOv11n/s/m/l/x
-
-**Decision**:
-- Initially: **YOLOv11m** (medium, more accurate)
-- Finally: **YOLOv11s** (small, faster)
-
-**Reason for change**:
-```
-YOLOv11m: ~3.3 hours training time (CPU)
-YOLOv11s: ~1.5 hours training time (CPU)
-```
-→ Time savings with acceptable performance for 97 images
-
-#### Step 3: Training Configuration
-
-**File created**: `train.py`
-
-**Optimal configuration found**:
-```python
-model = YOLO("models/yolo11s-seg.pt")  # ⚠️ Important: -seg for segmentation
-
-config = {
-    'data': 'dataset/data.yaml',
-    'epochs': 100,
-    'batch': 8,              # Reduced from 16 → 8 for stability
-    'imgsz': 640,
-    'device': 'cpu',         # CPU instead of MPS (see issues)
-    'optimizer': 'AdamW',
-    'lr0': 0.001,
-    'patience': 30,          # Early stopping
-    'amp': False,            # Disabled for MPS compatibility
-}
-```
-
-**Configuration file**: `data.yaml`
-```yaml
-train: ../dataset/train/images
-val: ../dataset/valid/images
-test: ../dataset/test/images
-nc: 2
-names:
-  0: chip
-  1: hole-JsHt
-```
-
-#### Step 4: Model Training
-
-**Execution command**:
+**Training command**:
 ```bash
-python train.py
-# or
 python backend/train.py
 ```
 
-**Training duration**: ~1.067 hours (64 minutes)
+**What the training script does**:
+1. Loads pre-trained YOLOv11s-seg model (`models/yolo11s-seg.pt`)
+2. Fine-tunes on your Roboflow-labeled dataset
+3. Saves best model to `models/best.pt`
+4. This model is then used by the web application
 
-**Early stopping**:
-- Configured: 30 epochs patience
-- Stopped at: Epoch 62 (out of 100 max)
-- Best model: Epoch 32
+**Training configuration** (in `backend/train.py`):
+- Model: YOLOv11s-segmentation (small, fast)
+- Epochs: 100 (with early stopping at 30 epochs patience)
+- Batch size: 8
+- Device: CPU (MPS disabled for stability)
+- Optimizer: AdamW
+- Learning rate: 0.001
 
-**Metrics monitored during training**:
-- Box Loss (bounding box localization)
-- Seg Loss (segmentation mask quality)
-- Class Loss (chip vs hole classification)
-- mAP50 and mAP50-95
+**Training output**:
+- Best model: `models/best.pt` (used by the API)
+- Training metrics: `runs/segment/train/results.csv`
+- Visualizations: confusion matrix, PR curves, training curves
 
-**Generated files**:
-```
-runs/segment/train/
-├── weights/
-│   ├── best.pt          # Best model (epoch 32)
-│   └── last.pt          # Last model (epoch 62)
-├── results.csv          # Metrics per epoch
-├── confusion_matrix.png # Confusion matrix
-├── results.png          # Training curves
-├── PR_curve.png         # Precision-Recall curves
-├── F1_curve.png         # F1-Score curves
-└── val_batch*.jpg       # Prediction examples
-```
+**Note**: This initial training is done once. After that, the web application handles retraining with new validated images through the active learning loop.
 
-#### Step 5: Model Evaluation
+## 🎓 Model Training
 
-**File created**: `evaluate.py`
+### Initial Training (From Roboflow Dataset)
 
-**Evaluation command**:
+**First-time setup** - Train the model on your Roboflow-labeled dataset:
+
 ```bash
-python evaluate.py --model runs/segment/train/weights/best.pt
+python backend/train.py
 ```
 
-**Metrics calculated**:
-- mAP50 and mAP50-95 (box & mask)
-- Precision and Recall per class
-- F1-Score per class
-- Confusion matrix
+This will:
+- Use the dataset from `dataset/` (exported from Roboflow)
+- Fine-tune YOLOv11s-segmentation model
+- Save `models/best.pt` for use by the web application
 
-#### Step 6: Inference Script
+### Retraining (Active Learning)
 
-**File created**: `inference.py`
+**After using the application** - Retrain with validated images:
 
-**Usage**:
+1. Use the web interface to analyze and correct images
+2. Validate corrected images (saved to `outputs/validated_images/`)
+3. Click "Start Retraining" in the web interface
+4. The system automatically:
+   - Moves validated images to `dataset/train/`
+   - Retrains the model (fine-tuning from `models/best.pt`)
+   - Updates `models/best.pt` with improved model
+
+**Retraining via API**:
+```bash
+# Via web interface (recommended)
+# Or via API:
+POST /api/retrain
+```
+
+**Retraining via command line**:
+```bash
+python backend/train.py --epochs 100 --batch 8 --patience 30
+```
+
+**Note**: When `models/best.pt` exists, the training script automatically uses it for fine-tuning (continues training), otherwise it starts from the pre-trained YOLOv11s-seg model.
+
+### Training Configuration
+
+- **Model Selection**: 
+  - If `models/best.pt` exists → Fine-tuning (continues from existing model)
+  - If not → Training from scratch with pre-trained YOLOv11s-seg
+- **Device**: Automatically detects CUDA, otherwise uses CPU (MPS disabled for stability)
+- **Early Stopping**: Configured with patience (default: 30 epochs)
+- **Logging**: Detailed logs saved to `logs/training.log`
+
+### Training Metrics
+
+Monitor these metrics during training:
+- **Box Loss**: Bounding box localization accuracy
+- **Seg Loss**: Segmentation mask quality
+- **Class Loss**: Classification accuracy (chip vs hole)
+- **mAP50**: Mean Average Precision at IoU=0.5
+- **mAP50-95**: Mean Average Precision at IoU=0.5:0.95
+
+### Evaluation Script
+
+**File**: `evaluate.py`
+
+Script for evaluating model performance on validation or test datasets.
+
+```bash
+# Evaluate on validation set (default)
+python evaluate.py
+
+# Evaluate on test set
+python evaluate.py --split test
+
+# Evaluate with specific model
+python evaluate.py --model models/best.pt --split val
+
+# Evaluate with custom parameters
+python evaluate.py --batch 16 --imgsz 640
+```
+
+**Metrics displayed**:
+- mAP50 and mAP50-95 (bounding boxes and masks)
+- Global Precision and Recall
+- Per-class metrics (chip, hole-JsHt)
+- Generates plots in `runs/segment/eval_*/`
+
+### Inference Script
+
+**File**: `inference.py`
+
+Script for making predictions on new images.
+
 ```bash
 # Prediction on one image
 python inference.py --source dataset/test/images/image.jpg
 
-# With custom confidence threshold
+# Prediction on a directory of images
+python inference.py --source dataset/test/images/
+
+# With custom thresholds
 python inference.py --source dataset/test/images/image.jpg --conf 0.5 --iou 0.7
+
+# Save labels in YOLO format
+python inference.py --source dataset/test/images/image.jpg --save-txt
 ```
 
-### Results and Analysis
+**Available options**:
+- `--model`: Path to model (default: `models/best.pt`)
+- `--source`: Image, video, or directory (required)
+- `--conf`: Confidence threshold (default: 0.25)
+- `--iou`: IoU threshold for NMS (default: 0.7)
+- `--save-txt`: Save labels in YOLO format
+- `--imgsz`: Image size (default: 640)
 
-#### Overall Performance
+**Results**:
+- Annotated images saved in `runs/segment/predict/`
+- Labels (if `--save-txt`) in `runs/segment/predict/labels/`
 
-**Successful training** with the following metrics:
+### Automatic SAM Management
 
-| Metric Type | mAP50 | mAP50-95 | Precision | Recall |
-|-------------|-------|----------|-----------|--------|
-| **Bounding Box** | 88.0% | 72.7% | 96.8% | 72.0% |
-| **Segmentation Mask** | 87.3% | 64.1% | 96.2% | 72.0% |
+**Behavior**: If the SAM model (`models/sam_vit_h_4b8939.pth`) is not present:
+- The model is **automatically downloaded** on first use of SAM segmentation
+- File size: ~2.4 GB
+- Downloaded from: `https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth`
 
-#### Per-Class Analysis
+**Note**: In production, fine-tuned models (`best.pt`) and SAM will already be present. These are **extreme fallbacks** for development or initial deployment cases.
 
-##### Class "chip" (Components)
-```
-✅ Precision: 95.6%  → Model makes few false detections
-✅ Recall: 100%      → Model detects all components
-✅ F1-Score: 97.73%  → Excellent balance
-```
+## ⚠️ Important Notes
 
-**Interpretation**:
-The model is **excellent** at detecting electronic components. It doesn't miss any component (100% recall) and makes very few errors (95.6% precision).
+### Model Retraining
 
-##### Class "hole-JsHt" (Holes/Voids)
-```
-✅ Precision: 97.8%  → Model makes very few false detections
-⚠️  Recall: 43.9%    → Model misses 56% of holes
-⚠️  F1-Score: 60.60% → Moderate performance
-```
+- **The retrained model overwrites the previous `best.pt`**
+- No automatic backup of previous versions
+- To preserve a version, copy `best.pt` before retraining
 
-**Interpretation**:
-The model is **very conservative** in detecting holes:
-- When it detects a hole, it's correct 97.8% of the time (excellent precision)
-- **BUT** it misses more than half of the holes present (low recall)
+### Dataset and Configuration
 
-**Why this imbalance?**
-1. 🔢 **Class imbalance**: Likely more chips than holes in dataset
-2. 📏 **Object size**: Holes are smaller and harder to detect
-3. 📊 **Limited data**: Only 97 images total
+- The `dataset/` folder is **included** in the project
+- The `.env` file is **included** with default settings
+- **No sensitive or confidential data** is present in these files
 
-#### Results Visualization
+### Production vs Development
 
-**Precision-Recall Curve (PR Curve)**:
-```
-runs/segment/train/PR_curve.png
-```
-- Area under curve = mAP
-- Closer the curve to top-right corner, the better
+- **In production**: Fine-tuned models (`best.pt`) and SAM will already be present
+- Automatic fallbacks (model download, initial training) are for:
+  - Local development
+  - Initial deployments
+  - Testing environments
 
-**F1-Score Curve**:
-```
-runs/segment/train/F1_curve.png
-```
-- Shows best precision-recall trade-off
-- Peak of curve = optimal confidence threshold
+### Performance
 
-**Confusion Matrix**:
-```
-runs/segment/train/confusion_matrix.png
-```
+- **GPU Recommended**: Training and inference are much faster with NVIDIA GPU
+- **CPU**: Works but can be very slow for training (several hours)
+- **Apple Silicon**: MPS is disabled for training due to compatibility issues with YOLO segmentation
 
-Example confusion matrix:
-```
-                Predicted
-              chip   hole   background
-Actual chip     50     0        0      ← Perfect!
-Actual hole      0    15       19      ← 19 holes missed
-       BG        1     2       --
-```
+### SAM Model
 
-#### Training Curves
+- SAM model is loaded once at startup (singleton pattern)
+- First request may be slower as the model loads
+- Subsequent requests are fast as the model is reused
 
-**Loss Evolution**:
-```
-runs/segment/train/results.png
-```
+## 🐛 Issues Encountered and Solutions
 
-Expected observation:
-- ✅ Box Loss ↓ : Localization improvement
-- ✅ Seg Loss ↓ : Mask improvement
-- ✅ Class Loss ↓ : Classification improvement
-- ✅ Stable convergence without overfitting
-
-### Improvement Recommendations
-
-**To improve hole recall**:
-
-1. **Collect more data**:
-   ```
-   Current dataset: 97 images
-   Recommended: 300-500 images
-   ```
-
-2. **Increase data augmentation** (in `train.py`):
-   ```python
-   mosaic=1.0,        # Mix 4 images
-   mixup=0.1,         # Add mixup
-   copy_paste=0.1,    # Copy-paste objects
-   ```
-
-3. **Adjust confidence threshold** (inference):
-   ```bash
-   # More permissive for holes
-   python inference.py --source dataset/test/images/image.jpg --conf 0.15  # instead of 0.25
-   ```
-
-4. **Use larger model**:
-   ```python
-   model = YOLO("models/yolo11m-seg.pt")  # Medium instead of Small
-   ```
-
-### Issues Encountered and Solutions
-
-#### Issue 1: Shape Mismatch Error
+### Issue 1: Shape Mismatch Error
 
 **Error encountered**:
 ```
@@ -508,7 +706,7 @@ model = YOLO("models/yolo11s-seg.pt")  # Segmentation model
 - `.pt` = detection (bounding boxes)
 - `-seg.pt` = segmentation (polygon masks)
 
-#### Issue 2: MPS Error on Apple Silicon
+### Issue 2: MPS Error on Apple Silicon
 
 **Error encountered**:
 ```
@@ -518,7 +716,7 @@ contiguous subspaces). Use .reshape(...) instead.
 ```
 
 **Context**:
-- MacBook with M1/M2 chip (Apple Silicon)
+- MacBook with M1/M2/M4 chip (Apple Silicon)
 - Attempted use of MPS backend (Metal Performance Shaders)
 
 **Solutions attempted**:
@@ -545,7 +743,7 @@ contiguous subspaces). Use .reshape(...) instead.
 YOLOv11-segmentation uses complex tensor operations that aren't yet fully supported by PyTorch's MPS backend for segmentation.
 
 **Impact**:
-- ⏱️ Slower training (~1h on CPU vs ~20min on GPU)
+- ⏱️ Slower training (~1-2h on CPU vs ~20min on GPU)
 - ✅ But works stably
 
 **Future alternative**:
@@ -554,7 +752,7 @@ YOLOv11-segmentation uses complex tensor operations that aren't yet fully suppor
 device='cuda'  # Much faster
 ```
 
-#### Issue 3: Relative Paths in data.yaml
+### Issue 3: Relative Paths in data.yaml
 
 **Error encountered**:
 ```
@@ -563,32 +761,82 @@ FileNotFoundError: [Errno 2] No such file or directory:
 ```
 
 **Cause**:
-Using relative paths in `data.yaml`:
-```yaml
-# ❌ Problematic
-path: .
-train: ../train/images
-```
+Using relative paths in `data.yaml` without proper `path:` field.
 
 **Solution applied**:
 ```yaml
 # ✅ Correct
-train: ../dataset/train/images
-val: ../dataset/valid/images
-test: ../dataset/test/images
+path: /absolute/path/to/dataset
+train: train/images
+val: valid/images
+test: test/images
 ```
 
 **Best practice**:
-- `train/val/test` = **relative** paths from `data.yaml` file location
-- Paths are resolved relative to the `data.yaml` file location
+- `path:` = **absolute** path to dataset root
+- `train/val/test` = **relative** paths from `path:` field
 
-### Development Notes
+### Issue 4: TensorBoard Compatibility
 
-#### Important Technical Decisions
+**Error encountered**:
+```
+ImportError: cannot import name 'notf' from 'tensorboard.compat'
+AttributeError: 'MessageFactory' object has no attribute 'GetPrototype'
+```
+
+**Solution applied**:
+- Completely disable TensorBoard via environment variables
+- Create dummy `tensorboard.compat` module to prevent errors
+- Filter TensorBoard warnings
+
+**Code**:
+```python
+os.environ['TENSORBOARD_DISABLE'] = '1'
+os.environ['YOLO_TENSORBOARD'] = 'False'
+```
+
+## 🐛 Troubleshooting
+
+### Training Fails with TensorBoard Error
+
+**Solution**: TensorBoard is automatically disabled. If you still see errors, ensure:
+- Environment variables `TENSORBOARD_DISABLE=1` and `YOLO_TENSORBOARD=False` are set
+- The dummy `tensorboard.compat` module is in place
+
+### Training Fails with MPS Error
+
+**Error**: `RuntimeError: view size is not compatible with input tensor's size`
+
+**Solution**: MPS is automatically disabled. Training uses CPU instead (slower but stable).
+
+### SAM Segmentation is Slow
+
+**Solution**: SAM model is loaded once at startup. First request may take time, but subsequent requests are fast.
+
+### No Model Found Error
+
+**Solution**: 
+1. Check if `models/best.pt` exists
+2. If not, trigger initial training via `/api/training/retrain`
+3. Wait for training to complete before analyzing images
+
+### Dataset Path Errors
+
+**Solution**: Ensure `dataset/data.yaml` has correct absolute path in the `path:` field:
+```yaml
+path: /absolute/path/to/dataset
+train: train/images
+val: valid/images
+test: test/images
+```
+
+## 📝 Development Notes
+
+### Important Technical Decisions
 
 1. **Choice of YOLOv11s instead of YOLOv11m**
-   - Reason: Training time savings (1h vs 3.3h)
-   - Trade-off: Slight accuracy decrease acceptable for 97 images
+   - Reason: Training time savings (1-2h vs 3-4h)
+   - Trade-off: Slight accuracy decrease acceptable for dataset size
 
 2. **Using CPU instead of MPS**
    - Reason: MPS incompatibility with segmentation operations
@@ -596,259 +844,58 @@ test: ../dataset/test/images
 
 3. **Early stopping at 30 epochs**
    - Reason: Avoid overfitting on small dataset
-   - Result: Stopped at epoch 62, best model at epoch 32
+   - Result: Automatic stopping when no improvement
 
-#### Lessons Learned
+4. **FastAPI instead of Flask**
+   - Reason: Modern, async, auto-generated documentation
+   - Benefits: Better performance, type hints, OpenAPI support
+
+### Lessons Learned
 
 1. ✅ **Always verify annotation format** before choosing model
-2. ✅ **Use relative paths** in configuration files
-3. ✅ **Test on small batch** before launching complete training
+2. ✅ **Use absolute paths** in `data.yaml` `path:` field
+3. ✅ **Test on small batch** before full training
 4. ✅ **Document encountered issues** for future reference
+5. ✅ **Use segmentation model** (`-seg.pt`) for polygon annotations
 
-## 🔬 Scripts d'entraînement et d'évaluation
+## 📝 License
 
-Le projet inclut plusieurs scripts pour l'entraînement, l'évaluation et l'inférence :
-
-### Entraînement (`backend/train.py`)
-
-Script d'entraînement complet avec gestion automatique des modèles et détection de device.
-
-```bash
-# Entraînement avec paramètres par défaut
-python backend/train.py
-
-# Entraînement avec paramètres personnalisés
-python backend/train.py --epochs 150 --batch 16 --patience 50
-```
-
-**Fonctionnalités** :
-- Détection automatique GPU/CPU/MPS
-- Utilise `models/best.pt` s'il existe (fine-tuning), sinon `models/yolo11s-seg.pt` (entraînement depuis zéro)
-- Copie automatique du meilleur modèle dans `models/best.pt`
-- Logging détaillé dans `logs/training.log`
-
-### Évaluation (`evaluate.py`)
-
-Script pour évaluer les performances du modèle sur les datasets de validation ou de test.
-
-```bash
-# Évaluation sur le set de validation (défaut)
-python evaluate.py
-
-# Évaluation sur le set de test
-python evaluate.py --split test
-
-# Évaluation avec un modèle spécifique
-python evaluate.py --model models/best.pt --split val
-
-# Évaluation avec paramètres personnalisés
-python evaluate.py --batch 16 --imgsz 640
-```
-
-**Métriques affichées** :
-- mAP50 et mAP50-95 (bounding boxes et masks)
-- Precision et Recall globaux
-- Métriques par classe (chip, hole-JsHt)
-- Génération de graphiques dans `runs/segment/eval_*/`
-
-### Inférence (`inference.py`)
-
-Script pour faire des prédictions sur de nouvelles images.
-
-```bash
-# Prédiction sur une image
-python inference.py --source dataset/test/images/image.jpg
-
-# Prédiction sur un dossier d'images
-python inference.py --source dataset/test/images/
-
-# Avec seuils personnalisés
-python inference.py --source dataset/test/images/image.jpg --conf 0.5 --iou 0.7
-
-# Sauvegarder les labels au format YOLO
-python inference.py --source dataset/test/images/image.jpg --save-txt
-```
-
-**Options disponibles** :
-- `--model` : Chemin vers le modèle (défaut: `models/best.pt`)
-- `--source` : Image, vidéo ou dossier (requis)
-- `--conf` : Seuil de confiance (défaut: 0.25)
-- `--iou` : Seuil IoU pour NMS (défaut: 0.7)
-- `--save-txt` : Sauvegarder les labels au format YOLO
-- `--imgsz` : Taille d'image (défaut: 640)
-
-**Résultats** :
-- Images annotées sauvegardées dans `runs/segment/predict/`
-- Labels (si `--save-txt`) dans `runs/segment/predict/labels/`
-
-### Gestion automatique de SAM
-
-**Comportement** : Si le modèle SAM (`models/sam_vit_h_4b8939.pth`) n'est pas présent :
-- Le modèle est **téléchargé automatiquement** lors de la première utilisation de la segmentation SAM
-- Taille du fichier : ~2.4 GB
-- Téléchargement depuis : `https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth`
-
-**Note** : Dans un contexte de production, les modèles finetunés (`best.pt`) et SAM seront déjà présents, donc l'utilisateur n'aura pas à faire face à ces lourdes installations. Ce sont des **fallbacks extrêmes** pour les cas de développement ou de déploiement initial.
-
-## 📐 Explication des calculs
-
-L'application calcule plusieurs métriques importantes pour l'analyse des composants :
-
-### 1. **Area (Aire)**
-
-- **Définition** : Surface totale des chips détectées en pixels
-- **Calcul** : Somme des aires de tous les masques de classe "chip" (class_id = 0)
-- **Unité** : Pixels²
-
-### 2. **Void Rate (Taux de vide)**
-
-- **Définition** : Pourcentage de la surface totale des chips occupée par les trous
-- **Formule** : `Void Rate (%) = (Surface totale des trous / Surface totale des chips) × 100`
-- **Interprétation** :
-  - Plus le void rate est élevé, plus la chip est endommagée
-  - Un void rate supérieur au seuil configuré (`VOID_RATE_THRESHOLD`, défaut: 5%) indique une chip non utilisable
-
-### 3. **Void % (Pourcentage de vide)**
-
-- **Définition** : Identique au Void Rate, exprimé en pourcentage
-- **Utilisation** : Métrique principale pour déterminer si une chip est utilisable
-
-### 4. **Max.void % (Pourcentage de vide maximum)**
-
-- **Définition** : Pourcentage de la surface de la chip occupée par le **plus grand trou individuel**
-- **Formule** : `Max.void % = (Aire du plus grand trou / Aire totale des chips) × 100`
-- **Interprétation** :
-  - Indique la taille du défaut le plus important
-  - Utile pour identifier des trous critiques même si le void rate global est acceptable
-  - Peut être calculé par chip individuelle ou globalement sur l'image
-
-### Exemple de calcul
-
-```
-Image avec :
-- 2 chips détectées : Chip A (1000 px²), Chip B (800 px²)
-- 3 trous détectés : Trou 1 (20 px²), Trou 2 (30 px²), Trou 3 (50 px²)
-
-Calculs globaux :
-- Area = 1000 + 800 = 1800 px²
-- Void % = (20 + 30 + 50) / 1800 × 100 = 5.56%
-- Max.void % = 50 / 1800 × 100 = 2.78%
-
-Calculs par chip :
-Chip A :
-- Area = 1000 px²
-- Void % = (20 + 30) / 1000 × 100 = 5.0%
-- Max.void % = 30 / 1000 × 100 = 3.0%
-
-Chip B :
-- Area = 800 px²
-- Void % = 50 / 800 × 100 = 6.25%
-- Max.void % = 50 / 800 × 100 = 6.25%
-```
-
-## 📁 Structure du projet
-
-```
-Project-Deployment.yolov11/
-├── api/                    # Application Flask et routes API
-│   ├── app.py             # Configuration Flask principale
-│   ├── routes.py          # Endpoints API
-│   ├── run_api.py         # Script de démarrage
-│   ├── storage.py         # Gestion du stockage des images validées
-│   └── training_job.py    # Gestion des jobs d'entraînement
-│
-├── backend/               # Logique métier
-│   ├── src/
-│   │   ├── config.py      # Configuration centralisée
-│   │   ├── services/      # Services métier
-│   │   │   ├── yolo_inference.py
-│   │   │   ├── void_rate_calculator.py
-│   │   │   ├── sam_segmentation.py
-│   │   │   ├── training_service.py
-│   │   │   └── label_manager.py
-│   │   ├── schemas/       # Modèles de données
-│   │   └── utils/         # Utilitaires
-│   └── train.py           # Script d'entraînement
-│
-├── dataset/               # Dataset d'entraînement (inclus)
-│   ├── data.yaml          # Configuration YOLO
-│   ├── train/             # Images et labels d'entraînement
-│   ├── valid/             # Images et labels de validation
-│   └── test/              # Images et labels de test
-│
-├── models/                # Modèles entraînés
-│   ├── best.pt            # Modèle YOLO finetuné (généré après entraînement)
-│   └── sam_vit_h_4b8939.pth  # Modèle SAM (téléchargé automatiquement)
-│
-├── outputs/               # Résultats et sorties
-│   ├── uploads/           # Images uploadées temporairement
-│   ├── inference/         # Images avec inférence YOLO
-│   ├── sam_segmentation/  # Résultats de segmentation SAM
-│   ├── results/           # Résultats d'analyse
-│   └── validated_images/  # Images validées et leurs labels
-│
-├── logs/                  # Fichiers de logs
-│   ├── app.log            # Logs de l'application
-│   └── training.log       # Logs d'entraînement
-│
-├── frontend/              # Interface web
-│   └── index.html         # Interface utilisateur
-│
-├── evaluate.py            # Script d'évaluation du modèle
-├── inference.py           # Script d'inférence standalone
-├── requirements.txt       # Dépendances Python
-├── .env                   # Variables d'environnement (inclus)
-└── README.md             # Ce fichier
-```
-
-## ⚠️ Notes importantes
-
-### Modèle réentraîné
-
-- **Le modèle issu du réentraînement écrase le précédent `best.pt`**
-- Il n'y a pas de sauvegarde automatique des versions précédentes
-- Pour conserver une version, copiez `best.pt` avant un nouveau réentraînement
-
-### Dataset et configuration
-
-- Le dossier `dataset/` est **inclus** dans le projet pour faciliter la passation
-- Le fichier `.env` est **inclus** avec les paramètres par défaut
-- **Aucune donnée sensible ou confidentielle** n'est présente dans ces fichiers
-
-### Production vs Développement
-
-- **En production** : Les modèles finetunés (`best.pt`) et SAM seront déjà présents
-- Les fallbacks (téléchargement automatique, entraînement initial) sont prévus pour :
-  - Le développement local
-  - Les déploiements initiaux
-  - Les environnements de test
-
-### Logs et débogage
-
-- Consultez `logs/app.log` pour les erreurs de l'application
-- Consultez `logs/training.log` pour suivre l'entraînement
-- Les logs incluent des informations détaillées sur les opérations
-
-### Performance
-
-- **GPU recommandé** : L'entraînement et l'inférence sont beaucoup plus rapides avec un GPU NVIDIA
-- **CPU** : Fonctionne mais peut être très lent pour l'entraînement (plusieurs heures)
-- **Apple Silicon** : Support MPS pour accélération sur Mac avec puce Apple
-
-## 🔗 Endpoints API principaux
-
-- `POST /api/analyze` : Analyser une image
-- `POST /api/segment` : Segmentation SAM guidée
-- `POST /api/validate/from-segmentation` : Valider une image depuis SAM
-- `POST /api/training/retrain` : Lancer un réentraînement
-- `GET /api/training/status/<training_id>` : Statut d'un entraînement
-- `POST /api/analyze/export-csv` : Exporter les résultats en CSV
-
-## 📝 Licence
-
-Voir le fichier de licence du projet.
+See the project license file.
 
 ## 👥 Support
 
-Pour toute question ou problème, consultez les logs dans `logs/` ou contactez l'équipe de développement.
+For questions or issues:
+- Check logs in `logs/` directory
+- Review API documentation at `/docs`
+- Contact the development team
 
+## ☁️ Azure Deployment
+
+The application automatically detects Azure deployment and configures itself:
+- **Host**: Automatically set to `0.0.0.0` when `WEBSITE_HOSTNAME` or `PORT` env vars are detected
+- **Port**: Uses Azure's `PORT` environment variable (automatically provided)
+- **Configuration**: Set `FASTAPI_ENV=production` and `FASTAPI_DEBUG=False` in Azure App Service settings
+
+**Deployment Steps**:
+1. Create Azure App Service (Linux, Python 3.12)
+2. Configure environment variables in Azure Portal:
+   - `FASTAPI_ENV=production`
+   - `FASTAPI_DEBUG=False`
+3. Deploy code via GitHub Actions (see CI/CD section) or Azure CLI
+4. Upload models (`models/best.pt`, `models/sam_vit_h_4b8939.pth`) to Azure Storage or include in deployment
+
+## 🔄 CI/CD Pipeline
+
+**GitHub Actions** (`.github/workflows/ci-cd.yml`):
+- ✅ Automated testing on push/PR
+- ✅ Code linting and formatting checks
+- ✅ Automatic deployment to Azure on main branch
+
+**Setup**:
+1. Create Azure Service Principal and add as GitHub secret `AZURE_CREDENTIALS`
+2. Add `AZURE_RESOURCE_GROUP` and update `AZURE_WEBAPP_NAME` in workflow file
+3. Push to `main` branch to trigger deployment
+
+---
+
+**Built with**: FastAPI, YOLOv11, SAM, PyTorch, Ultralytics
