@@ -1196,23 +1196,67 @@
                 if (!response.ok) {
                     // FastAPI returns errors in 'detail' field
                     let errorMessage = 'Error during analysis';
+                    let errorDetails = '';
+                    let troubleshooting = '';
+                    
                     if (data.detail) {
                         // If detail is an object (e.g., from HTTPException with dict)
                         if (typeof data.detail === 'object') {
-                            errorMessage = data.detail.error || data.detail.message || JSON.stringify(data.detail);
+                            errorMessage = data.detail.error || data.detail.message || 'Error during analysis';
+                            errorDetails = data.detail.message || data.detail.error || '';
+                            troubleshooting = data.detail.troubleshooting || '';
+                            
+                            // Add additional details if available
+                            if (data.detail.model_path) {
+                                errorDetails += `\nModel path: ${data.detail.model_path}`;
+                            }
+                            if (data.detail.training_id) {
+                                errorDetails += `\nTraining ID: ${data.detail.training_id}`;
+                            }
                         } else {
                             errorMessage = data.detail;
+                            errorDetails = data.detail;
                         }
                     } else if (data.error) {
                         errorMessage = data.error;
+                        errorDetails = data.error;
                     }
-                    throw new Error(errorMessage);
+                    
+                    // Create detailed error message
+                    let fullErrorMessage = errorMessage;
+                    if (errorDetails && errorDetails !== errorMessage) {
+                        fullErrorMessage += '\n\nDetails: ' + errorDetails;
+                    }
+                    if (troubleshooting) {
+                        fullErrorMessage += '\n\nTroubleshooting: ' + troubleshooting;
+                    }
+                    if (response.status) {
+                        fullErrorMessage += `\n\nStatus Code: ${response.status}`;
+                    }
+                    
+                    throw new Error(fullErrorMessage);
                 }
 
                 displayAnalyzeResults(data);
                 showSuccess('analyzeSuccess', 'Analysis completed successfully!');
             } catch (error) {
-                showError('analyzeError', error.message);
+                // Enhanced error handling with more details
+                let errorMsg = error.message || 'Unknown error occurred';
+                
+                // If it's a network error, add more context
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    errorMsg = 'Network error: Unable to connect to the server.\n\n' +
+                              'Please check:\n' +
+                              '1. The server is running\n' +
+                              '2. Your internet connection\n' +
+                              '3. The API endpoint is correct: ' + API_BASE;
+                }
+                
+                // Log full error to console for debugging
+                console.error('Full error object:', error);
+                console.error('Error stack:', error.stack);
+                
+                showError('analyzeError', errorMsg);
             } finally {
                 hideLoading('analyzeLoading');
             }
@@ -1819,8 +1863,11 @@
 
         function showError(id, message) {
             const el = document.getElementById(id);
-            el.textContent = message;
+            // Support multi-line messages with proper formatting
+            el.innerHTML = message.replace(/\n/g, '<br>');
             el.classList.add('active');
+            // Also log to console for debugging
+            console.error('Error:', message);
         }
 
         function hideError(id) {

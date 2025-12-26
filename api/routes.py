@@ -168,12 +168,31 @@ async def analyze_image(
     except FileNotFoundError as e:
         # Model or file not found
         logger.error(f"File not found error: {e}")
-        raise HTTPException(status_code=404, detail=f"File not found: {str(e)}")
+        raise HTTPException(status_code=404, detail={
+            'error': 'File not found',
+            'message': str(e),
+            'troubleshooting': 'Please check that the file exists and is accessible'
+        })
     except Exception as e:
         # Log full error for debugging
         import traceback
-        logger.error(f"Error analyzing image: {e}\n{traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Error analyzing image: {str(e)}")
+        error_trace = traceback.format_exc()
+        logger.error(f"Error analyzing image: {e}\n{error_trace}")
+        
+        # Return detailed error information
+        error_detail = {
+            'error': 'Analysis failed',
+            'message': str(e),
+            'error_type': type(e).__name__,
+            'troubleshooting': 'Check server logs for more details. Common issues: model not loaded, insufficient memory, or image processing error.'
+        }
+        
+        # Add model path if available
+        if hasattr(Config, 'DEFAULT_MODEL'):
+            error_detail['model_path'] = str(Config.DEFAULT_MODEL)
+            error_detail['model_exists'] = Config.DEFAULT_MODEL.exists()
+        
+        raise HTTPException(status_code=500, detail=error_detail)
 
 
 @router.post("/analyze/batch")
