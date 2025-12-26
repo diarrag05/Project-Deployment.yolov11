@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,108 +11,127 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #3b82f6;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --border: #e2e8f0;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius: 8px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+        }
+
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
         header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            padding: 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
         header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header .logo {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            border-radius: var(--radius);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
         }
 
         header p {
-            opacity: 0.9;
-            font-size: 1.1em;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin: 0;
         }
 
-        .tabs {
-            display: flex;
-            background: #f5f5f5;
-            border-bottom: 2px solid #e0e0e0;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            background: #f5f5f5;
-            border: none;
-            font-size: 1.1em;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s;
-        }
-
-        .tab:hover {
-            background: #e8e8e8;
-        }
-
-        .tab.active {
-            background: white;
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .tab-content {
-            display: none;
-            padding: 40px;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
 
         .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 15px;
-            padding: 60px 20px;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-lg);
+            padding: 48px 24px;
             text-align: center;
-            background: #f8f9ff;
-            transition: all 0.3s;
+            background: var(--bg-secondary);
+            transition: all 0.2s;
             cursor: pointer;
-            margin-bottom: 30px;
+            margin-bottom: 24px;
         }
 
         .upload-area:hover {
-            border-color: #764ba2;
-            background: #f0f2ff;
+            border-color: var(--primary);
+            background: var(--bg-tertiary);
         }
 
         .upload-area.dragover {
-            border-color: #764ba2;
-            background: #e8ebff;
-            transform: scale(1.02);
+            border-color: var(--primary);
+            background: #eff6ff;
+            border-style: solid;
         }
 
         .upload-icon {
-            font-size: 4em;
-            margin-bottom: 20px;
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.6;
         }
 
         .upload-text {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
         }
 
         .file-input {
@@ -120,21 +139,30 @@
         }
 
         .btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 15px 40px;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s;
-            margin: 10px;
+            transition: all 0.2s;
+            margin: 0 8px 0 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-sm);
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        .btn:hover:not(:disabled) {
+            background: var(--primary-dark);
+            box-shadow: var(--shadow);
+            transform: translateY(-1px);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
         }
 
         .btn:disabled {
@@ -144,72 +172,115 @@
         }
 
         .btn-secondary {
-            background: #6c757d;
+            background: var(--secondary);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #475569;
         }
 
         .btn-success {
-            background: #28a745;
+            background: var(--success);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
         }
 
         .btn-danger {
-            background: #dc3545;
+            background: var(--danger);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary);
         }
 
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary);
         }
 
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s;
         }
 
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .info-icon {
+            display: inline-block;
+            margin-left: 6px;
+            cursor: help;
+            font-size: 14px;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .info-icon:hover {
+            opacity: 1;
+        }
+
+        .help-text {
+            line-height: 1.6;
+        }
+
+        .help-text strong {
+            color: var(--text-primary);
         }
 
         .preview-container {
-            margin-top: 30px;
+            margin-top: 24px;
             text-align: center;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            border: 1px solid var(--border);
         }
 
         .preview-image {
             max-width: 100%;
-            max-height: 500px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-            margin: 20px 0;
+            max-height: 600px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            margin: 0;
         }
 
         .results {
-            background: #f8f9ff;
-            border-radius: 15px;
-            padding: 30px;
-            margin-top: 30px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            margin-top: 24px;
+            border: 1px solid var(--border);
         }
 
         .results h3 {
-            color: #667eea;
+            color: var(--text-primary);
             margin-bottom: 20px;
-            font-size: 1.5em;
+            font-size: 18px;
+            font-weight: 600;
         }
 
         .stats-grid {
@@ -220,23 +291,31 @@
         }
 
         .stat-card {
-            background: white;
+            background: var(--bg-primary);
             padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
             text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
         }
 
         .stat-value {
-            font-size: 2em;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 5px;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 4px;
         }
 
         .stat-label {
-            color: #666;
-            font-size: 0.9em;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
         }
 
         .status-badge {
@@ -248,13 +327,15 @@
         }
 
         .status-usable {
-            background: #d4edda;
-            color: #155724;
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #6ee7b7;
         }
 
         .status-not-usable {
-            background: #f8d7da;
-            color: #721c24;
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
         }
 
         .loading {
@@ -268,13 +349,13 @@
         }
 
         .spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 3px solid var(--bg-tertiary);
+            border-top: 3px solid var(--primary);
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            width: 40px;
+            height: 40px;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
         }
 
         @keyframes spin {
@@ -283,12 +364,14 @@
         }
 
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
+            background: #fef2f2;
+            color: #991b1b;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin: 16px 0;
             display: none;
+            border: 1px solid #fecaca;
+            font-size: 14px;
         }
 
         .error.active {
@@ -296,12 +379,14 @@
         }
 
         .success {
-            background: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
+            background: #f0fdf4;
+            color: #166534;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            margin: 16px 0;
             display: none;
+            border: 1px solid #bbf7d0;
+            font-size: 14px;
         }
 
         .success.active {
@@ -316,15 +401,17 @@
         }
 
         .image-item {
-            background: white;
-            border-radius: 10px;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s;
+            box-shadow: var(--shadow);
+            transition: all 0.2s;
+            border: 1px solid var(--border);
         }
 
         .image-item:hover {
-            transform: translateY(-5px);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .image-item img {
@@ -338,30 +425,40 @@
         }
 
         .training-status {
-            background: #f8f9ff;
+            background: var(--bg-secondary);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: var(--radius-lg);
             margin: 20px 0;
+            border: 1px solid var(--border);
+        }
+
+        .training-status h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
         }
 
         .progress-bar {
             width: 100%;
-            height: 30px;
-            background: #e0e0e0;
-            border-radius: 15px;
+            height: 24px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
             overflow: hidden;
-            margin: 10px 0;
+            margin: 12px 0;
+            border: 1px solid var(--border);
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            transition: width 0.3s;
+            background: var(--primary);
+            transition: width 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-weight: 600;
+            font-weight: 500;
+            font-size: 12px;
         }
 
         .image-preview-container {
@@ -374,40 +471,50 @@
         .image-preview-container img {
             max-width: 100%;
             max-height: 600px;
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
         }
 
         .point-marker {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            background: #667eea;
-            border: 3px solid white;
+            background: var(--primary);
+            border: 2px solid white;
             transform: translate(-50%, -50%);
             cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: var(--shadow-md);
+            transition: all 0.2s;
         }
 
         .point-marker:hover {
-            background: #764ba2;
-            transform: translate(-50%, -50%) scale(1.2);
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: var(--shadow-lg);
         }
 
         .point-marker.foreground {
-            background: #28a745;
+            background: var(--success);
         }
 
         .point-marker.background {
-            background: #dc3545;
+            background: var(--danger);
         }
 
         .points-controls {
-            background: #f8f9ff;
-            padding: 20px;
-            border-radius: 10px;
-            margin: 20px 0;
+            background: var(--bg-secondary);
+            padding: 24px;
+            border-radius: var(--radius-lg);
+            margin: 24px 0;
+            border: 1px solid var(--border);
+        }
+
+        .points-controls h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
         }
 
         .points-list {
@@ -417,117 +524,416 @@
         }
 
         .point-item {
-            background: white;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 5px;
+            background: var(--bg-primary);
+            padding: 12px 16px;
+            margin: 6px 0;
+            border-radius: var(--radius);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid var(--border);
+            font-size: 13px;
         }
 
         .point-item button {
-            background: #dc3545;
+            background: var(--danger);
             color: white;
             border: none;
-            padding: 5px 15px;
-            border-radius: 5px;
+            padding: 6px 12px;
+            border-radius: var(--radius);
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
         }
 
         .point-item button:hover {
-            background: #c82333;
+            background: #dc2626;
+        }
+
+        /* Workflow Steps Indicator */
+        .workflow-steps {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 32px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            border: 2px solid var(--border);
+            transition: all 0.3s;
+        }
+
+        .step.active .step-number {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .step.completed .step-number {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .step.completed .step-number::before {
+            content: '✓';
+        }
+
+        .step-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .step.active .step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: var(--border);
+            margin: 0 16px;
+            max-width: 120px;
+        }
+
+        .step.active ~ .step-line {
+            background: var(--border);
+        }
+
+        .step.completed ~ .step-line {
+            background: var(--success);
+        }
+
+        /* Workflow Container */
+        .workflow-container {
+            padding: 32px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .workflow-step {
+            display: none;
+        }
+
+        .workflow-step.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .step-header {
+            margin-bottom: 32px;
+        }
+
+        .step-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .step-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Navigation Buttons */
+        .workflow-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+        }
+
+        .nav-btn-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Typography */
+        h2 {
+            color: var(--text-primary);
+            margin-bottom: 24px;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            animation: fadeIn 0.2s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Utility classes */
+        .text-muted {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .text-secondary {
+            color: var(--text-secondary);
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-1 { margin-top: 8px; }
+        .mt-2 { margin-top: 16px; }
+        .mt-3 { margin-top: 24px; }
+        .mb-1 { margin-bottom: 8px; }
+        .mb-2 { margin-bottom: 16px; }
+        .mb-3 { margin-bottom: 24px; }
+        .p-1 { padding: 8px; }
+        .p-2 { padding: 16px; }
+        .p-3 { padding: 24px; }
+
+        .w-full {
+            width: 100%;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 16px 20px;
+            }
+
+            .tabs {
+                padding: 0 20px;
+                overflow-x: auto;
+            }
+
+            .tab {
+                padding: 12px 16px;
+                white-space: nowrap;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🔍 Chip-and-Hole Detection System</h1>
-            <p>Système de détection et d'analyse de chips électroniques</p>
+            <div class="header-content">
+                <div>
+                    <h1>
+                        <span class="logo">Y</span>
+                        Chip-and-Hole Detection System
+                    </h1>
+                    <p>YOLOv11 Segmentation & SAM Active Learning</p>
+                </div>
+            </div>
         </header>
 
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab('analyze')">Analyse</button>
-            <button class="tab" onclick="switchTab('segment')">Segmentation SAM</button>
-            <button class="tab" onclick="switchTab('training')">Réentraînement</button>
+        <!-- Workflow Steps Indicator -->
+        <div class="workflow-steps">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-label">Analyse YOLO</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-label">SAM Correction</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-label">Validation</div>
+            </div>
+            <div class="step-line"></div>
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-label">Retraining</div>
+            </div>
         </div>
 
-        <!-- Tab: Analyze -->
-        <div id="analyze" class="tab-content active">
-            <h2>Analyse d'image avec YOLO</h2>
+        <!-- Main Workflow Content -->
+        <div class="workflow-container">
+            <!-- Step 1: YOLO Analysis -->
+            <div id="step1" class="workflow-step active">
+                <div class="step-header">
+                    <h2>Step 1: Automatic Analysis with YOLO</h2>
+                    <p class="step-description">
+                        Upload an image to automatically detect chips and holes using YOLOv11 segmentation. 
+                        The system will calculate the defect percentage (void rate) and determine if the component is usable.
+                    </p>
+                </div>
             
-            <div class="form-group">
-                <label>Seuil de void rate (%)</label>
-                <input type="number" id="threshold" value="5.0" step="0.1" min="0" max="100">
+            <!-- Quality Standard Info (Fixed, not editable) -->
+            <div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div>
+                        <strong style="font-size: 14px; color: var(--text-primary);">Quality Standard</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">
+                            Components with defect rate <strong>&lt; 5%</strong> are <strong>USABLE</strong>.<br>
+                            Components with defect rate <strong>≥ 5%</strong> are <strong>NOT USABLE</strong>.
+                        </p>
+                    </div>
+                    <span style="font-size: 24px; font-weight: 700; color: var(--primary);">5%</span>
+                </div>
             </div>
+            <input type="hidden" id="threshold" value="5.0">
 
             <div class="upload-area" id="analyzeUploadArea" onclick="document.getElementById('analyzeFileInput').click()">
                 <div class="upload-icon">📁</div>
-                <div class="upload-text">Cliquez ou glissez-déposez une image ici</div>
-                <div style="color: #999; font-size: 0.9em;">Formats supportés: JPG, PNG, GIF, BMP</div>
+                <div class="upload-text">Click or drag and drop an image here</div>
+                <div class="text-muted">Supported formats: JPG, PNG, GIF, BMP</div>
             </div>
             <input type="file" id="analyzeFileInput" class="file-input" accept="image/*" onchange="handleAnalyzeFile(event)">
 
             <div class="loading" id="analyzeLoading">
                 <div class="spinner"></div>
-                <p>Analyse en cours...</p>
+                <p>Analyzing...</p>
             </div>
 
             <div class="error" id="analyzeError"></div>
             <div class="success" id="analyzeSuccess"></div>
 
             <div id="analyzeResults" class="results" style="display: none;">
-                <h3>Résultats de l'analyse</h3>
+                <h3>Analysis Results</h3>
+                <p class="text-secondary" style="margin-bottom: 16px; font-size: 14px;">
+                    The system has analyzed your image and calculated the defect percentage. 
+                    Review the results below to see if the component meets quality standards.
+                </p>
                 <div class="preview-container">
-                    <img id="analyzeResultImage" class="preview-image" alt="Résultat">
+                    <img id="analyzeResultImage" class="preview-image" alt="Analysis Result">
                 </div>
                 <div class="stats-grid" id="analyzeStats"></div>
+                    <div class="workflow-nav">
+                        <div></div>
+                        <div class="nav-btn-group">
+                            <div class="workflow-nav">
+                                <div></div>
+                                <div class="nav-btn-group">
+                                    <button class="btn btn-success" onclick="loadImageToSAM()">
+                                        Correct with SAM →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Tab: Segment -->
-        <div id="segment" class="tab-content">
-            <h2>Segmentation avec SAM</h2>
+            <!-- Step 2: SAM Correction -->
+            <div id="step2" class="workflow-step" style="display: none;">
+                <div class="step-header">
+                    <h2>Step 2: Manual Correction with SAM</h2>
+                    <p class="step-description">
+                        Use SAM to manually correct or improve the YOLO segmentation. 
+                        Select what you want to segment (Chip or Hole), then click on the image to add points.
+                    </p>
+                </div>
             
+            <!-- YOLO Results Reference -->
+            <div id="yoloReference" class="results mb-3" style="display: none;">
+                <h3>YOLO Analysis Reference</h3>
+                <p class="text-secondary mb-2">This is what YOLO detected. Use SAM to correct or improve it.</p>
+                <div class="preview-container">
+                    <img id="yoloReferenceImage" class="preview-image" alt="YOLO Results">
+                </div>
+                <div id="yoloReferenceStats" class="stats-grid mt-2"></div>
+            </div>
+
+            <!-- Class Selection -->
+            <div class="form-group">
+                <label>What are you segmenting?</label>
+                <select id="segmentClass" class="form-group input" onchange="updateSegmentingClassDisplay()">
+                    <option value="0">Chip (Component)</option>
+                    <option value="1">Hole (Void)</option>
+                </select>
+                <p class="text-muted mt-1" style="font-size: 13px;">
+                    <strong>Chip:</strong> The electronic component area (the main chip)<br>
+                    <strong>Hole:</strong> Voids/defects inside the component (empty spaces to detect)
+                </p>
+            </div>
+
             <div class="upload-area" id="segmentUploadArea" onclick="document.getElementById('segmentFileInput').click()">
                 <div class="upload-icon">🎯</div>
-                <div class="upload-text">Cliquez ou glissez-déposez une image ici</div>
-                <div style="color: #999; font-size: 0.9em;">Formats supportés: JPG, PNG, GIF, BMP</div>
+                <div class="upload-text">Click or drag and drop an image here</div>
+                <div class="text-muted">Supported formats: JPG, PNG, GIF, BMP</div>
+                <div class="text-muted mt-2" style="font-size: 12px;">
+                    <em>Or use the image from Step 1 analysis</em>
+                </div>
             </div>
             <input type="file" id="segmentFileInput" class="file-input" accept="image/*" onchange="handleSegmentFile(event)">
 
             <!-- Guided mode: Image preview and point selection -->
             <div id="guidedModeContainer" style="display: none;">
                 <div class="points-controls">
-                    <h3>Mode guidé - Sélectionnez des points sur l'image</h3>
-                    <p style="color: #666; margin: 10px 0;">
-                        <strong>Instructions:</strong> Cliquez sur l'image pour ajouter des points. 
-                        Les points verts (foreground) indiquent ce que vous voulez segmenter, 
-                        les points rouges (background) indiquent ce que vous ne voulez pas.
+                    <h3>Guided Mode - Select points on the image</h3>
+                    <div class="mb-2" style="background: #eff6ff; padding: 12px; border-radius: 8px; border-left: 4px solid var(--primary);">
+                        <p class="text-secondary mb-1" style="margin: 0;">
+                            <strong>Currently segmenting:</strong> <span id="currentSegmentingClass" style="color: var(--primary); font-weight: 600;">Chip (Component)</span>
+                        </p>
+                        <p class="text-secondary mb-0" style="font-size: 13px; margin-top: 4px;">
+                            Click on the <strong style="color: var(--success);">green points</strong> to mark what you want to segment.<br>
+                            Click on the <strong style="color: var(--danger);">red points</strong> to mark what you want to exclude.
+                        </p>
+                    </div>
+                    <p class="text-secondary mb-2">
+                        <strong>Instructions:</strong> Click on the image to add points. 
+                        Green points (foreground) mark areas to include in segmentation, 
+                        red points (background) mark areas to exclude.
                     </p>
-                    <div style="margin: 15px 0;">
+                    <div class="mb-2">
                         <label>
                             <input type="radio" name="pointType" value="foreground" checked> 
-                            Point foreground (vert) - À segmenter
+                            Foreground point (green) - To segment
                         </label>
                         <br>
                         <label style="margin-top: 10px;">
                             <input type="radio" name="pointType" value="background"> 
-                            Point background (rouge) - À exclure
+                            Background point (red) - To exclude
                         </label>
                     </div>
                     <div class="image-preview-container" id="imagePreviewContainer">
                         <img id="previewImage" alt="Aperçu">
                     </div>
                     <div class="points-list" id="pointsList">
-                        <p style="color: #999; text-align: center; padding: 20px;">Aucun point sélectionné</p>
+                        <p class="text-muted text-center p-2">No points selected</p>
                     </div>
-                    <div style="margin-top: 20px;">
-                        <button class="btn" onclick="clearPoints()">Effacer tous les points</button>
+                    <div class="mt-2">
+                        <button class="btn" onclick="clearPoints()">Clear all points</button>
                         <button class="btn btn-success" onclick="launchGuidedSegmentation()" id="launchSegmentationBtn" disabled>
-                            Lancer la segmentation
+                            Launch segmentation
                         </button>
                     </div>
                 </div>
@@ -535,85 +941,198 @@
 
             <div class="loading" id="segmentLoading">
                 <div class="spinner"></div>
-                <p>Segmentation en cours...</p>
+                <p>Segmenting...</p>
             </div>
 
             <div class="error" id="segmentError"></div>
             <div class="success" id="segmentSuccess"></div>
 
             <div id="segmentResults" class="results" style="display: none;">
-                <h3>Résultats de la segmentation</h3>
-                <div class="preview-container">
-                    <img id="segmentResultImage" class="preview-image" alt="Résultat">
-                </div>
-                <div id="segmentStats"></div>
-                <div style="margin-top: 30px; text-align: center;">
-                    <button class="btn btn-success" onclick="validateFromSegmentation()" id="validateSegmentationBtn">
-                        ✓ Valider cette segmentation pour le réentraînement
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab: Training -->
-        <div id="training" class="tab-content">
-            <h2>Réentraînement du modèle</h2>
-            
-            <div id="validatedCountInfo" class="training-status" style="margin-bottom: 30px;">
-                <h3>Images validées disponibles</h3>
-                <div id="validatedCountContent">
-                    <p>Chargement...</p>
+                <h3>Segmentation Results</h3>
+                    <div class="preview-container">
+                        <img id="segmentResultImage" class="preview-image" alt="Résultat">
+                    </div>
+                    <div id="segmentStats"></div>
+                    <div class="workflow-nav">
+                        <button class="btn" onclick="goToStep(1)">← Back to analysis</button>
+                        <div class="nav-btn-group">
+                            <button class="btn btn-success" onclick="validateAndGoToStep3()" id="validateSegmentationBtn">
+                                ✓ Validate and continue →
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-            
-            <div class="form-group">
-                <label>Nombre d'époques</label>
-                <input type="number" id="epochs" value="100" min="1">
+
+            <!-- Step 3: Validation -->
+            <div id="step3" class="workflow-step" style="display: none;">
+                <div class="step-header">
+                    <h2>Step 3: Validation Successful</h2>
+                    <p class="step-description">
+                        Your segmentation has been validated and added to the training dataset.
+                    </p>
+                </div>
+                <div id="validatedCountInfo" class="training-status mb-3">
+                    <h3>Available Validated Images</h3>
+                    <div id="validatedCountContent">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+                <div class="workflow-nav">
+                    <button class="btn" onclick="goToStep(1)">← Analyze a new image</button>
+                    <div class="nav-btn-group">
+                        <button class="btn btn-success" onclick="goToStep(4)">
+                            Start retraining →
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label>Taille du batch</label>
-                <input type="number" id="batchSize" value="8" min="1">
-            </div>
+            <!-- Step 4: Retraining -->
+            <div id="step4" class="workflow-step" style="display: none;">
+                <div class="step-header">
+                    <h2>Step 4: Model Retraining</h2>
+                    <p class="step-description">
+                        Start retraining to improve the YOLO model with your newly validated annotations.
+                    </p>
+                </div>
+                
+                <div id="validatedCountInfo" class="training-status mb-3">
+                    <h3>Available Validated Images</h3>
+                    <div id="validatedCountContent">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+                
+                <div style="padding: 16px; background: var(--bg-secondary); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 24px;">
+                    <p style="margin: 0; font-size: 14px; color: var(--text-secondary);">
+                        The model will be retrained using optimized settings. This process may take several minutes.
+                    </p>
+                </div>
 
-            <div class="form-group">
-                <label>Patience (early stopping)</label>
-                <input type="number" id="patience" value="30" min="1">
-            </div>
+                <button class="btn btn-success" onclick="startTraining()" style="width: 100%; padding: 14px; font-size: 16px;">
+                    🚀 Start Retraining
+                </button>
 
-            <button class="btn btn-success" onclick="startTraining()">Démarrer le réentraînement</button>
+                <div class="error" id="trainingError"></div>
+                <div class="success" id="trainingSuccess"></div>
 
-            <div class="error" id="trainingError"></div>
-            <div class="success" id="trainingSuccess"></div>
-
-            <div id="trainingStatus" class="training-status" style="display: none;">
-                <h3>Statut de l'entraînement</h3>
-                <div id="trainingStatusContent"></div>
+                <div id="trainingStatus" class="training-status" style="display: none;">
+                    <h3>Training Status</h3>
+                    <div id="trainingStatusContent"></div>
+                </div>
+                
+                <div class="workflow-nav">
+                    <button class="btn" onclick="goToStep(1)">← Back to analysis</button>
+                    <div></div>
+                </div>
             </div>
         </div>
 
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:5000/api';
+        const API_BASE = 'http://localhost:5001/api';
 
-        function switchTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
+        // Workflow navigation
+        function goToStep(stepNumber) {
+            // Hide all steps
+            document.querySelectorAll('.workflow-step').forEach(step => {
+                step.classList.remove('active');
+                step.style.display = 'none';
             });
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
+            
+            // Update step indicators
+            document.querySelectorAll('.step').forEach((step, index) => {
+                const stepNum = index + 1;
+                step.classList.remove('active', 'completed');
+                
+                if (stepNum < stepNumber) {
+                    step.classList.add('completed');
+                } else if (stepNum === stepNumber) {
+                    step.classList.add('active');
+                }
             });
-
-            // Show selected tab
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
-
-            // Load data for specific tabs
-            if (tabName === 'training') {
-                checkTrainingStatus();
+            
+            // Show selected step
+            const targetStep = document.getElementById(`step${stepNumber}`);
+            if (targetStep) {
+                targetStep.classList.add('active');
+                targetStep.style.display = 'block';
+            }
+            
+            // Load data for specific steps
+            if (stepNumber === 3 || stepNumber === 4) {
                 updateValidatedCount();
+            }
+            if (stepNumber === 4) {
+                checkTrainingStatus();
+            }
+        }
+        
+        async function validateAndGoToStep3() {
+            if (!currentSegmentationData) {
+                showError('segmentError', 'No segmentation available for validation');
+                return;
+            }
+
+            hideError('segmentError');
+            hideSuccess('segmentSuccess');
+            
+            const btn = document.getElementById('validateSegmentationBtn');
+            btn.disabled = true;
+            btn.textContent = 'Validating...';
+
+            try {
+                // Get selected class
+                const classSelect = document.getElementById('segmentClass');
+                const classId = classSelect ? parseInt(classSelect.value) : 0;
+
+                // Get points
+                let points = [];
+                let pointLabels = [];
+                
+                if (currentSegmentationData.points && currentSegmentationData.point_labels) {
+                    points = currentSegmentationData.points;
+                    pointLabels = currentSegmentationData.point_labels;
+                } else if (selectedPoints.length > 0) {
+                    points = selectedPoints.map(p => [p.x, p.y]);
+                    pointLabels = selectedPoints.map(p => p.label);
+                } else {
+                    throw new Error('Points required for segmentation');
+                }
+
+                // Use FormData (as expected by FastAPI endpoint)
+                const formData = new FormData();
+                formData.append('image_path', currentSegmentationData.image_path);
+                formData.append('points', JSON.stringify(points));
+                formData.append('point_labels', JSON.stringify(pointLabels));
+                formData.append('class_id', classId.toString());
+                formData.append('metadata', JSON.stringify({ mode: 'guided' }));
+
+                const response = await fetch(`${API_BASE}/validate/from-segmentation`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Error during validation');
+                }
+
+                showSuccess('segmentSuccess', `Segmentation validated successfully! ${data.num_masks} mask(s) detected.`);
+                updateValidatedCount();
+                
+                // Go to step 3 after successful validation
+                setTimeout(() => {
+                    goToStep(3);
+                }, 1000);
+            } catch (error) {
+                showError('segmentError', error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✓ Validate and continue →';
             }
         }
 
@@ -673,11 +1192,11 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Erreur lors de l\'analyse');
+                    throw new Error(data.error || 'Error during analysis');
                 }
 
                 displayAnalyzeResults(data);
-                showSuccess('analyzeSuccess', 'Analyse terminée avec succès!');
+                showSuccess('analyzeSuccess', 'Analysis completed successfully!');
             } catch (error) {
                 showError('analyzeError', error.message);
             } finally {
@@ -685,38 +1204,48 @@
             }
         }
 
-        // Store current analysis data for CSV export
+        // Store current analysis data for CSV export and SAM correction
         let currentAnalysisData = null;
+        let currentAnalyzedImagePath = null;
 
         function displayAnalyzeResults(data) {
-            // Store data for CSV export
+            // Store data for CSV export and SAM correction
             currentAnalysisData = data;
+            currentAnalyzedImagePath = data.image_path;
             
             const stats = data.statistics;
             const statsHtml = `
                 <div class="stat-card">
-                    <div class="stat-value">${stats.void_rate_percent.toFixed(2)}%</div>
-                    <div class="stat-label">Void Rate</div>
+                    <div class="stat-value" style="color: ${stats.void_rate_percent >= data.threshold ? 'var(--danger)' : 'var(--success)'};">
+                        ${stats.void_rate_percent.toFixed(2)}%
+                    </div>
+                    <div class="stat-label">Defect Rate (Void %)</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        ${stats.void_rate_percent >= data.threshold ? 'Above threshold' : 'Below threshold'}
+                    </div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${stats.num_chips}</div>
-                    <div class="stat-label">Chips détectées</div>
+                    <div class="stat-label">Components Found</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${stats.num_holes}</div>
-                    <div class="stat-label">Trous détectés</div>
+                    <div class="stat-label">Defects (Holes) Found</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${stats.chip_area_pixels.toLocaleString()}</div>
-                    <div class="stat-label">Aire chip (pixels)</div>
+                    <div class="stat-label">Component Area</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">in pixels</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${stats.holes_area_pixels.toLocaleString()}</div>
-                    <div class="stat-label">Aire trous (pixels)</div>
+                    <div class="stat-label">Defects Area</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">in pixels</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${(stats.average_confidence * 100).toFixed(1)}%</div>
-                    <div class="stat-label">Confiance moyenne</div>
+                    <div class="stat-label">Detection Confidence</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">model certainty</div>
                 </div>
             `;
 
@@ -724,17 +1253,57 @@
 
             // Display status badge
             const statusBadge = data.is_usable 
-                ? '<span class="status-badge status-usable">✓ UTILISABLE</span>'
-                : '<span class="status-badge status-not-usable">✗ NON UTILISABLE</span>';
+                ? '<span class="status-badge status-usable">✓ USABLE</span>'
+                : '<span class="status-badge status-not-usable">✗ NOT USABLE</span>';
+            
+            // Calculate comparison for better visualization
+            const voidRate = stats.void_rate_percent;
+            const threshold = data.threshold;
+            const isAboveThreshold = voidRate >= threshold;
+            const difference = Math.abs(voidRate - threshold);
+            
+            // Create visual comparison
+            const comparisonHtml = `
+                <div style="margin-top: 16px; padding: 16px; background: ${isAboveThreshold ? '#fef2f2' : '#f0fdf4'}; border-radius: 8px; border-left: 4px solid ${isAboveThreshold ? 'var(--danger)' : 'var(--success)'};">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div>
+                            <strong style="font-size: 16px; color: var(--text-primary);">Quality Assessment</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 13px; color: var(--text-secondary);">
+                                ${isAboveThreshold 
+                                    ? `Component has <strong>${difference.toFixed(2)}%</strong> more defects than acceptable.` 
+                                    : `Component is <strong>${difference.toFixed(2)}%</strong> below the quality threshold.`}
+                            </p>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; color: var(--text-secondary);">
+                            <span>Void Rate: <strong>${voidRate.toFixed(2)}%</strong></span>
+                            <span>Threshold: <strong>${threshold}%</strong></span>
+                        </div>
+                        <div style="width: 100%; height: 8px; background: #e5e7eb; border-radius: 4px; overflow: hidden; position: relative;">
+                            <div style="width: ${Math.min(100, (threshold / Math.max(voidRate, threshold)) * 100)}%; height: 100%; background: var(--success); position: absolute; left: 0;"></div>
+                            <div style="width: ${Math.min(100, (voidRate / Math.max(voidRate, threshold)) * 100)}%; height: 100%; background: ${isAboveThreshold ? 'var(--danger)' : 'var(--success)'}; position: absolute; left: 0; opacity: 0.7;"></div>
+                            <div style="position: absolute; left: ${Math.min(100, (threshold / Math.max(voidRate, threshold)) * 100)}%; top: -2px; width: 2px; height: 12px; background: var(--primary);"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 11px; color: var(--text-muted);">
+                            <span>0%</span>
+                            <span style="color: var(--primary);">Threshold: ${threshold}%</span>
+                            <span>${Math.max(voidRate, threshold).toFixed(0)}%</span>
+                        </div>
+                    </div>
+                </div>
+            `;
             
             document.getElementById('analyzeStats').innerHTML += `
                 <div class="stat-card" style="grid-column: 1 / -1;">
-                    ${statusBadge}
-                    <div style="margin-top: 10px; color: #666;">Seuil utilisé: ${data.threshold}%</div>
-                    <div style="margin-top: 5px; color: #666;">Temps de traitement: ${data.processing_time.toFixed(2)}s</div>
-                    <button onclick="downloadAnalysisCSV()" class="btn btn-primary" style="margin-top: 15px; width: 100%;">
-                        📥 Télécharger les résultats en CSV
-                    </button>
+                    ${comparisonHtml}
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-secondary);">
+                        <span>Processing time: ${data.processing_time.toFixed(2)}s</span>
+                        <button onclick="downloadAnalysisCSV()" class="btn btn-primary" style="padding: 6px 16px; font-size: 13px;">
+                            📥 Download CSV
+                        </button>
+                    </div>
                 </div>
             `;
 
@@ -745,10 +1314,71 @@
             showResults('analyzeResults');
         }
 
+        // Load analyzed image to SAM for correction
+        async function loadImageToSAM() {
+            if (!currentAnalyzedImagePath) {
+                showError('analyzeError', 'No analyzed image available. Please analyze an image first.');
+                return;
+            }
+
+            // Go to step 2
+            goToStep(2);
+
+            // Show YOLO reference
+            const yoloRef = document.getElementById('yoloReference');
+            yoloRef.style.display = 'block';
+            
+            // Display YOLO reference image
+            const imagePath = encodeURIComponent(currentAnalysisData.output_image_path);
+            document.getElementById('yoloReferenceImage').src = `${API_BASE}/images/${imagePath}`;
+            
+            // Display YOLO stats
+            const stats = currentAnalysisData.statistics;
+            const refStatsHtml = `
+                <div class="stat-card">
+                    <div class="stat-value">${stats.num_chips}</div>
+                    <div class="stat-label">Chips Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.num_holes}</div>
+                    <div class="stat-label">Holes Detected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${stats.void_rate_percent.toFixed(2)}%</div>
+                    <div class="stat-label">Void Rate</div>
+                </div>
+            `;
+            document.getElementById('yoloReferenceStats').innerHTML = refStatsHtml;
+
+            // Load original image for SAM
+            try {
+                const response = await fetch(`${API_BASE}/images/${encodeURIComponent(currentAnalyzedImagePath)}`);
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const file = new File([blob], 'yolo_analyzed_image.jpg', { type: blob.type });
+                    
+                    // Create a file input event
+                    const fileInput = document.getElementById('segmentFileInput');
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                    
+                    // Trigger file handler
+                    handleSegmentFile({ target: fileInput });
+                } else {
+                    // Fallback: use file input
+                    showSuccess('segmentSuccess', 'Please upload the original image for SAM correction.');
+                }
+            } catch (error) {
+                console.error('Error loading image:', error);
+                showSuccess('segmentSuccess', 'Please upload the original image for SAM correction.');
+            }
+        }
+
         // Function to download CSV
         async function downloadAnalysisCSV() {
             if (!currentAnalysisData) {
-                showError('analyzeError', 'Aucune donnée d\'analyse disponible pour l\'export');
+                showError('analyzeError', 'No analysis data available for export');
                 return;
             }
 
@@ -765,7 +1395,7 @@
 
                 if (!response.ok) {
                     const error = await response.json();
-                    throw new Error(error.error || 'Erreur lors de l\'export CSV');
+                    throw new Error(error.error || 'Error exporting CSV');
                 }
 
                 // Get CSV data and trigger download
@@ -779,7 +1409,7 @@
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
                 
-                showSuccess('analyzeSuccess', 'CSV téléchargé avec succès!');
+                showSuccess('analyzeSuccess', 'CSV downloaded successfully!');
             } catch (error) {
                 showError('analyzeError', error.message);
             }
@@ -788,62 +1418,10 @@
         // Store current segmentation data for validation
         let currentSegmentationData = null;
 
+        // validateFromSegmentation is now handled by validateAndGoToStep3
+        // Keep this for backward compatibility if needed elsewhere
         async function validateFromSegmentation() {
-            if (!currentSegmentationData) {
-                showError('segmentError', 'Aucune segmentation disponible pour validation');
-                return;
-            }
-
-            hideError('segmentError');
-            hideSuccess('segmentSuccess');
-            
-            const btn = document.getElementById('validateSegmentationBtn');
-            btn.disabled = true;
-            btn.textContent = 'Validation en cours...';
-
-            try {
-                const requestBody = {
-                    image_path: currentSegmentationData.image_path,
-                    mode: 'guided' // Forced to guided mode
-                };
-
-                // Add points for guided mode
-                if (currentSegmentationData.points && currentSegmentationData.point_labels) {
-                    requestBody.points = currentSegmentationData.points;
-                    requestBody.point_labels = currentSegmentationData.point_labels;
-                } else if (selectedPoints.length > 0) {
-                    requestBody.points = selectedPoints.map(p => [p.x, p.y]);
-                    requestBody.point_labels = selectedPoints.map(p => p.label);
-                } else {
-                    throw new Error('Points requis pour la segmentation');
-                }
-
-                const response = await fetch(`${API_BASE}/validate/from-segmentation`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(data.error || 'Erreur lors de la validation');
-                }
-
-                showSuccess('segmentSuccess', `Segmentation validée avec succès! ${data.num_masks} masque(s) détecté(s). ID: ${data.storage_id.substring(0, 8)}...`);
-                
-                // Update validated count if on training tab
-                if (document.getElementById('training').classList.contains('active')) {
-                    updateValidatedCount();
-                }
-            } catch (error) {
-                showError('segmentError', error.message);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = '✓ Valider cette segmentation pour le réentraînement';
-            }
+            await validateAndGoToStep3();
         }
 
         // Segment functions
@@ -857,8 +1435,21 @@
             if (!file) return;
 
             currentSegmentFile = file;
-            // Toujours afficher l'aperçu pour le mode guidé
+            // Always show preview for guided mode
             showImagePreview(file);
+            
+            // Update class selection display
+            updateSegmentingClassDisplay();
+        }
+
+        function updateSegmentingClassDisplay() {
+            const classSelect = document.getElementById('segmentClass');
+            const displaySpan = document.getElementById('currentSegmentingClass');
+            if (classSelect && displaySpan) {
+                const selectedValue = classSelect.value;
+                const className = selectedValue === '0' ? 'Chip (Component)' : 'Hole (Void)';
+                displaySpan.textContent = className;
+            }
         }
 
         function showImagePreview(file) {
@@ -949,16 +1540,16 @@
         function updatePointsList() {
             const list = document.getElementById('pointsList');
             if (selectedPoints.length === 0) {
-                list.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Aucun point sélectionné</p>';
+                list.innerHTML = '<p class="text-muted text-center p-2">No points selected</p>';
                 return;
             }
             
             list.innerHTML = selectedPoints.map((point, index) => {
-                const type = point.label === 1 ? 'Foreground (vert)' : 'Background (rouge)';
+                const type = point.label === 1 ? 'Foreground (green)' : 'Background (red)';
                 return `
                     <div class="point-item">
                         <span>Point ${index + 1}: (${point.x}, ${point.y}) - ${type}</span>
-                        <button onclick="removePointByIndex(${index})">Supprimer</button>
+                        <button onclick="removePointByIndex(${index})">Remove</button>
                     </div>
                 `;
             }).join('');
@@ -1002,7 +1593,7 @@
 
         async function launchGuidedSegmentation() {
             if (!currentSegmentFile || selectedPoints.length === 0) {
-                showError('segmentError', 'Veuillez sélectionner au moins un point sur l\'image');
+                showError('segmentError', 'Please select at least one point on the image');
                 return;
             }
 
@@ -1012,13 +1603,18 @@
         async function segmentImage(file, mode) {
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('mode', 'guided');  // Toujours 'guided'
+            formData.append('mode', 'guided');  // Always 'guided'
 
-            // Toujours inclure les points
+            // Get selected class
+            const classSelect = document.getElementById('segmentClass');
+            const classId = classSelect ? parseInt(classSelect.value) : 0;
+
+            // Always include points
             const points = selectedPoints.map(p => [p.x, p.y]);
             const pointLabels = selectedPoints.map(p => p.label);
             formData.append('points', JSON.stringify(points));
             formData.append('point_labels', JSON.stringify(pointLabels));
+            formData.append('class_id', classId.toString());
 
             showLoading('segmentLoading');
             hideError('segmentError');
@@ -1034,11 +1630,11 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Erreur lors de la segmentation');
+                    throw new Error(data.error || 'Error during segmentation');
                 }
 
                 displaySegmentResults(data);
-                showSuccess('segmentSuccess', 'Segmentation terminée avec succès!');
+                showSuccess('segmentSuccess', 'Segmentation completed successfully!');
             } catch (error) {
                 showError('segmentError', error.message);
             } finally {
@@ -1058,7 +1654,7 @@
             const statsHtml = `
                 <div class="stat-card">
                     <div class="stat-value">${data.num_masks}</div>
-                    <div class="stat-label">Masques générés</div>
+                    <div class="stat-label">Masks Generated</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${data.mode}</div>
@@ -1066,7 +1662,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-value">${data.processing_time.toFixed(2)}s</div>
-                    <div class="stat-label">Temps de traitement</div>
+                    <div class="stat-label">Processing Time</div>
                 </div>
             `;
 
@@ -1081,23 +1677,18 @@
 
         // Training functions
         async function startTraining() {
-            const epochs = document.getElementById('epochs').value;
-            const batchSize = document.getElementById('batchSize').value;
-            const patience = document.getElementById('patience').value;
-
             hideError('trainingError');
             hideSuccess('trainingSuccess');
 
             try {
+                // Use default values from backend (no user input needed)
                 const response = await fetch(`${API_BASE}/retrain`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        epochs: parseInt(epochs),
-                        batch_size: parseInt(batchSize),
-                        patience: parseInt(patience),
+                        // Let backend use default values from Config
                         move_validated: true
                     })
                 });
@@ -1105,10 +1696,10 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Erreur lors du démarrage de l\'entraînement');
+                    throw new Error(data.error || 'Error starting training');
                 }
 
-                showSuccess('trainingSuccess', `Entraînement démarré! ID: ${data.training_id}`);
+                showSuccess('trainingSuccess', `Training started! ID: ${data.training_id}`);
                 checkTrainingStatus();
             } catch (error) {
                 showError('trainingError', error.message);
@@ -1153,24 +1744,24 @@
 
             let progressInfo = '';
             if (data.status === 'in_progress' && data.epochs_completed === 0) {
-                progressInfo = '<p style="color: #666; font-style: italic;">L\'entraînement est en cours... La progression sera mise à jour automatiquement.</p>';
+                progressInfo = '<p class="text-secondary" style="font-style: italic;">Training is in progress... Progress will be updated automatically.</p>';
             }
 
             const statusHtml = `
-                <p><strong>Statut:</strong> ${data.status === 'in_progress' ? '🔄 En cours' : data.status}</p>
+                <p><strong>Status:</strong> ${data.status === 'in_progress' ? '🔄 In Progress' : data.status}</p>
                 <p><strong>ID:</strong> ${data.training_id}</p>
-                <p><strong>Époques:</strong> ${data.epochs_completed} / ${data.total_epochs}</p>
-                ${elapsedTime ? `<p><strong>Temps écoulé:</strong> ${elapsedTime}</p>` : ''}
+                <p><strong>Epochs:</strong> ${data.epochs_completed} / ${data.total_epochs}</p>
+                ${elapsedTime ? `<p><strong>Elapsed Time:</strong> ${elapsedTime}</p>` : ''}
                 <div class="progress-bar">
                     <div class="progress-fill" style="width: ${Math.max(progress, 1)}%">
-                        ${progress > 0 ? progress.toFixed(1) + '%' : 'Démarrage...'}
+                        ${progress > 0 ? progress.toFixed(1) + '%' : 'Starting...'}
                     </div>
                 </div>
                 ${progressInfo}
-                ${data.start_time ? `<p><strong>Début:</strong> ${new Date(data.start_time).toLocaleString()}</p>` : ''}
-                ${data.end_time ? `<p><strong>Fin:</strong> ${new Date(data.end_time).toLocaleString()}</p>` : ''}
-                ${data.best_model_path ? `<p><strong>Modèle:</strong> ${data.best_model_path}</p>` : ''}
-                ${data.error_message ? `<p style="color: red;"><strong>Erreur:</strong> ${data.error_message}</p>` : ''}
+                ${data.start_time ? `<p><strong>Start:</strong> ${new Date(data.start_time).toLocaleString()}</p>` : ''}
+                ${data.end_time ? `<p><strong>End:</strong> ${new Date(data.end_time).toLocaleString()}</p>` : ''}
+                ${data.best_model_path ? `<p><strong>Model:</strong> ${data.best_model_path}</p>` : ''}
+                ${data.error_message ? `<p style="color: red;"><strong>Error:</strong> ${data.error_message}</p>` : ''}
             `;
 
             document.getElementById('trainingStatusContent').innerHTML = statusHtml;
@@ -1193,8 +1784,8 @@
                     const contentDiv = document.getElementById('validatedCountContent');
                     if (contentDiv) {
                         contentDiv.innerHTML = `
-                            <p><strong>${count}</strong> image(s) validée(s) en attente de réentraînement</p>
-                            ${count > 0 ? '<p style="color: #666; font-size: 0.9em;">Ces images seront ajoutées au dataset d\'entraînement lors du réentraînement.</p>' : '<p style="color: #999; font-size: 0.9em;">Aucune image validée. Validez des images depuis l\'onglet "Segmentation SAM".</p>'}
+                            <p><strong>${count}</strong> validated image(s) waiting for retraining</p>
+                            ${count > 0 ? '<p style="color: #666; font-size: 0.9em;">These images will be added to the training dataset during retraining.</p>' : '<p style="color: #999; font-size: 0.9em;">No validated images. Validate images from Step 2 (SAM Correction).</p>'}
                         `;
                     }
                 }
@@ -1240,10 +1831,14 @@
             document.getElementById(id).style.display = 'none';
         }
 
-        // Auto-check training status on load
+        // Initialize workflow on load
         window.addEventListener('load', () => {
-            checkTrainingStatus();
+            goToStep(1); // Start at step 1
             updateValidatedCount();
+            // Initialize class display
+            setTimeout(() => {
+                updateSegmentingClassDisplay();
+            }, 100);
         });
     </script>
 </body>
