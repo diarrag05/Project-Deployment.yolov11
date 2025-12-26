@@ -75,6 +75,14 @@ async def analyze_image(
             content = await file.read()
             buffer.write(content)
         
+        # Try to download model from Blob Storage if not exists locally
+        if not Config.DEFAULT_MODEL.exists():
+            from api.model_loader import download_model_from_blob
+            logger.info("Model not found locally. Attempting to download from Azure Blob Storage...")
+            download_success = download_model_from_blob()
+            if not download_success:
+                logger.warning("Failed to download model from Blob Storage. Will try training if dataset available.")
+        
         # Check if model exists, if not, start initial training
         if not Config.DEFAULT_MODEL.exists():
             if training_job_manager.is_training_in_progress():

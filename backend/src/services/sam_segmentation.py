@@ -64,24 +64,66 @@ class SAMSegmentationService:
         if checkpoint_path is None:
             checkpoint_path = Config.MODELS_DIR / f"sam_{self.model_type}_4b8939.pth"
             if not checkpoint_path.exists():
-                print(f"SAM checkpoint not found. Downloading from {Config.SAM_CHECKPOINT_URL}...")
-                print("This may take several minutes (file size: ~2.4 GB)...")
-                
-                Config.MODELS_DIR.mkdir(parents=True, exist_ok=True)
-
+                # Try to download from Azure Blob Storage first
                 try:
-                    urllib.request.urlretrieve(
-                        Config.SAM_CHECKPOINT_URL,
-                        checkpoint_path,
-                        reporthook=self._download_progress_hook
-                    )
-                    print(f"\nSAM checkpoint downloaded successfully to {checkpoint_path}")
+                    from api.model_loader import download_sam_from_blob
+                    if download_sam_from_blob():
+                        # Successfully downloaded from Blob Storage
+                        checkpoint_path = Config.MODELS_DIR / f"sam_{self.model_type}_4b8939.pth"
+                    else:
+                        # Fallback to downloading from URL
+                        print(f"SAM checkpoint not found in Blob Storage. Downloading from {Config.SAM_CHECKPOINT_URL}...")
+                        print("This may take several minutes (file size: ~2.4 GB)...")
+                        
+                        Config.MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+                        urllib.request.urlretrieve(
+                            Config.SAM_CHECKPOINT_URL,
+                            checkpoint_path,
+                            reporthook=self._download_progress_hook
+                        )
+                        print(f"\nSAM checkpoint downloaded successfully from URL: {checkpoint_path}")
+                except ImportError:
+                    # api.model_loader not available, fallback to URL download
+                    print(f"SAM checkpoint not found. Downloading from {Config.SAM_CHECKPOINT_URL}...")
+                    print("This may take several minutes (file size: ~2.4 GB)...")
+                    
+                    Config.MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+                    try:
+                        urllib.request.urlretrieve(
+                            Config.SAM_CHECKPOINT_URL,
+                            checkpoint_path,
+                            reporthook=self._download_progress_hook
+                        )
+                        print(f"\nSAM checkpoint downloaded successfully from URL: {checkpoint_path}")
+                    except Exception as e:
+                        raise FileNotFoundError(
+                            f"Failed to download SAM checkpoint: {e}\n"
+                            f"Please download manually from: {Config.SAM_CHECKPOINT_URL}\n"
+                            f"and place it in: {Config.MODELS_DIR}"
+                        )
                 except Exception as e:
-                    raise FileNotFoundError(
-                        f"Failed to download SAM checkpoint: {e}\n"
-                        f"Please download manually from: {Config.SAM_CHECKPOINT_URL}\n"
-                        f"and place it in: {Config.MODELS_DIR}"
-                    )
+                    # Blob download failed, try URL as fallback
+                    print(f"Failed to download SAM from Blob Storage: {e}")
+                    print(f"Falling back to URL download from {Config.SAM_CHECKPOINT_URL}...")
+                    
+                    Config.MODELS_DIR.mkdir(parents=True, exist_ok=True)
+                    try:
+                        urllib.request.urlretrieve(
+                            Config.SAM_CHECKPOINT_URL,
+                            checkpoint_path,
+                            reporthook=self._download_progress_hook
+                        )
+                        print(f"\nSAM checkpoint downloaded successfully from URL: {checkpoint_path}")
+                    except Exception as url_error:
+                        raise FileNotFoundError(
+                            f"Failed to download SAM checkpoint from both Blob Storage and URL.\n"
+                            f"Blob Storage error: {e}\n"
+                            f"URL error: {url_error}\n"
+                            f"Please download manually from: {Config.SAM_CHECKPOINT_URL}\n"
+                            f"and place it in: {Config.MODELS_DIR}"
+                        )
         
         checkpoint_path = Path(checkpoint_path)
         if not checkpoint_path.exists():
