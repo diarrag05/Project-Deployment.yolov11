@@ -10,6 +10,29 @@ from pathlib import Path
 import torch
 from ultralytics import YOLO
 
+# Completely disable TensorBoard to avoid compatibility issues
+os.environ['TENSORBOARD_DISABLE'] = '1'
+os.environ['YOLO_TENSORBOARD'] = 'False'
+
+# Suppress TensorBoard warnings
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='tensorboard')
+# Note: AttributeError and ImportError are Exceptions, not Warnings
+# They are handled by the dummy module below
+
+# Patch TensorBoard compat module to prevent errors
+try:
+    import sys
+    # Create a dummy module for tensorboard.compat
+    class DummyTensorBoardCompat:
+        def __getattr__(self, name):
+            return None
+    
+    if 'tensorboard.compat' not in sys.modules:
+        sys.modules['tensorboard.compat'] = DummyTensorBoardCompat()
+except:
+    pass
+
 from src.config import Config
 from src.utils.logger import setup_logger
 
@@ -25,8 +48,11 @@ def detect_device():
     """
     Detect and return the best available device (GPU or CPU).
     
+    Note: MPS is disabled due to compatibility issues with YOLO segmentation.
+    See: https://github.com/ultralytics/ultralytics/issues/XXX
+    
     Returns:
-        str: Device identifier ('cuda', 'mps', or 'cpu')
+        str: Device identifier ('cuda' or 'cpu')
     """
     if torch.cuda.is_available():
         device = 'cuda'
@@ -34,12 +60,15 @@ def detect_device():
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
         logger.info(f"GPU detected: {gpu_name} ({gpu_memory:.2f} GB)")
         logger.info(f"CUDA version: {torch.version.cuda}")
-    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-        device = 'mps'
-        logger.info("Apple Silicon GPU (MPS) detected")
     else:
+        # MPS disabled due to tensor view/reshape issues with YOLO segmentation
+        # Use CPU instead for stability
         device = 'cpu'
-        logger.warning("No GPU detected. Training will use CPU (this will be slower).")
+        if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            logger.warning("Apple Silicon GPU (MPS) detected but disabled due to compatibility issues.")
+            logger.warning("Using CPU instead for stable training (will be slower but reliable).")
+        else:
+            logger.warning("No GPU detected. Training will use CPU (this will be slower).")
     
     return device
 
@@ -149,30 +178,40 @@ def main():
         
         if is_finetuned:
             logger.info("Loading fine-tuned model (best.pt) for continued training...")
-            logger.info("Using lower learning rate for fine-tuning continuation")
+            logger.info("Using optimized hyperparameters for faster retraining")
         else:
             logger.info("Loading pre-trained YOLOv11s-seg model...")
         
         model = YOLO(model_path)
         
         # Training configuration
-        # Use lower learning rate if continuing from fine-tuned model
-        base_lr = 0.001
+        # For retraining: use optimized hyperparameters for speed
+        # For initial training: use full training parameters
         if is_finetuned:
-            base_lr = 0.0001  # 10x lower for continued training
+            # Retraining: optimized settings
+            base_lr = Config.TRAINING_RETRAIN_LR  # 0.0003 for faster convergence
+            epochs = args.epochs if args.epochs is not None else Config.TRAINING_RETRAIN_EPOCHS
+            patience = args.patience if args.patience is not None else Config.TRAINING_RETRAIN_PATIENCE
+        else:
+            # Initial training: full settings
+            base_lr = 0.001
+            epochs = args.epochs if args.epochs is not None else Config.TRAINING_EPOCHS
+            patience = args.patience if args.patience is not None else Config.TRAINING_PATIENCE
         
-        # Use arguments if provided, otherwise use Config defaults
-        epochs = args.epochs if args.epochs is not None else Config.TRAINING_EPOCHS
+        # Batch size is the same for both
         batch_size = args.batch if args.batch is not None else Config.TRAINING_BATCH_SIZE
-        patience = args.patience if args.patience is not None else Config.TRAINING_PATIENCE
         
         logger.info(f"Training configuration:")
+        logger.info(f"  Mode: {'Retraining (optimized)' if is_finetuned else 'Initial training'}")
         logger.info(f"  Epochs: {epochs}")
         logger.info(f"  Batch size: {batch_size}")
+        logger.info(f"  Learning rate: {base_lr}")
         logger.info(f"  Patience: {patience}")
+        logger.info(f"  Data YAML: {data_yaml.absolute()}")
         
+        # Use absolute path to avoid YOLO path resolution issues
         results = model.train(
-            data=str(data_yaml),
+            data=str(data_yaml.absolute()),
             epochs=epochs,
             batch=batch_size,
             imgsz=640,
@@ -206,6 +245,9 @@ def main():
             workers=8 if device != 'cpu' else 4,
             project='runs/segment',
             name='train',
+            exist_ok=True,
+            plots=True,  # Generate plots/images (but not TensorBoard)
+            # TensorBoard is disabled via environment variables and import patching
         )
         
         # Find and copy best model to models directory

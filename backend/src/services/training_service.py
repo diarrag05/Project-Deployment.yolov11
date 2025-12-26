@@ -41,10 +41,11 @@ class TrainingService:
         training_id = str(uuid.uuid4())
         start_time = datetime.now()
         
-        # Use defaults from config if not provided
-        epochs = epochs or Config.TRAINING_EPOCHS
+        # Use optimized retraining defaults from config if not provided
+        # These are optimized for speed (active learning scenario)
+        epochs = epochs or Config.TRAINING_RETRAIN_EPOCHS
         batch_size = batch_size or Config.TRAINING_BATCH_SIZE
-        patience = patience or Config.TRAINING_PATIENCE
+        patience = patience or Config.TRAINING_RETRAIN_PATIENCE
         
         # Run training script
         try:

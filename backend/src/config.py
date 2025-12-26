@@ -49,17 +49,32 @@ class Config:
     SAM_MODEL_TYPE = os.getenv("SAM_MODEL_TYPE", "vit_h")
     SAM_CHECKPOINT_URL = os.getenv("SAM_CHECKPOINT_URL", "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth")
     
-    # Training settings - convert to int
+    # Training settings - Initial training (full training)
     TRAINING_EPOCHS = int(os.getenv("TRAINING_EPOCHS", "100"))
     TRAINING_BATCH_SIZE = int(os.getenv("TRAINING_BATCH_SIZE", "8"))
     TRAINING_PATIENCE = int(os.getenv("TRAINING_PATIENCE", "30"))
     
-    # Flask settings
-    FLASK_ENV = os.getenv("FLASK_ENV", "development")
-    FLASK_DEBUG = os.getenv("FLASK_DEBUG", "True").lower() in ("true", "1", "yes", "on")
-    FLASK_HOST = os.getenv("FLASK_HOST", "127.0.0.1")
-    FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
-    FLASK_MAX_UPLOAD_SIZE = int(os.getenv("FLASK_MAX_UPLOAD_SIZE", "16"))  # MB
+    # Retraining settings - Optimized for speed (active learning)
+    TRAINING_RETRAIN_EPOCHS = int(os.getenv("TRAINING_RETRAIN_EPOCHS", "15"))  # Reduced from 100 to 15 for faster retraining
+    TRAINING_RETRAIN_PATIENCE = int(os.getenv("TRAINING_RETRAIN_PATIENCE", "5"))  # Aggressive early stopping
+    TRAINING_RETRAIN_LR = float(os.getenv("TRAINING_RETRAIN_LR", "0.0003"))  # Slightly higher LR for faster convergence
+    
+    # FastAPI settings
+    FASTAPI_ENV = os.getenv("FASTAPI_ENV", "development")
+    FASTAPI_DEBUG = os.getenv("FASTAPI_DEBUG", "True").lower() in ("true", "1", "yes", "on")
+    
+    # Azure provides PORT environment variable, fallback to FASTAPI_PORT or default
+    FASTAPI_PORT = int(os.getenv("PORT", os.getenv("FASTAPI_PORT", "5001")))
+    FASTAPI_MAX_UPLOAD_SIZE = int(os.getenv("FASTAPI_MAX_UPLOAD_SIZE", "16"))  # MB
+    
+    # Host configuration: Azure uses 0.0.0.0, local uses localhost
+    # Detect Azure deployment by checking for WEBSITE_HOSTNAME or PORT env vars
+    if os.getenv("WEBSITE_HOSTNAME") or os.getenv("PORT"):
+        # Azure deployment: use 0.0.0.0 to listen on all interfaces
+        FASTAPI_HOST = os.getenv("FASTAPI_HOST", "0.0.0.0")
+    else:
+        # Local development: use localhost
+        FASTAPI_HOST = os.getenv("FASTAPI_HOST", "localhost")
     
     # Logging settings
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
