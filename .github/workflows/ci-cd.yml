@@ -108,10 +108,7 @@ jobs:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         images: ${{ env.AZURE_REGISTRY_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
     
-    - name: Configure App Settings
-      run: |
-        az webapp config appsettings set \
-          --name ${{ env.AZURE_WEBAPP_NAME }} \
-          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-          --settings FASTAPI_ENV=production FASTAPI_DEBUG=False WEBSITE_HOSTNAME=${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net
+    # Note: Application settings (FASTAPI_ENV, FASTAPI_DEBUG, WEBSITE_HOSTNAME) 
+    # should be configured directly in Azure Portal:
+    # Portal → Web App → Configuration → Application settings
 
