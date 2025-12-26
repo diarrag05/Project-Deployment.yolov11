@@ -122,33 +122,16 @@ class VoidRateCalculator:
         # Determine usability
         is_usable = self.is_usable(statistics)
         
-        # Save annotated image if requested
+        # Use the annotated image from YOLO inference (already has masks drawn)
+        # If YOLO created an annotated image, use it directly
         output_image_path = None
         if save_annotated_image:
-            try:
-                image = load_image(inference_result.image_path)
-                
-                # Re-extract masks for visualization
-                # Note: In a full implementation, we'd store masks in InferenceResult
-                # For now, we'll create a simple visualization
-                annotated_image = create_overlay_image(
-                    image,
-                    [],  # Masks would go here
-                    statistics.dict(),
-                    is_usable,
-                    self.threshold
-                )
-                
-                output_dir = output_dir or Config.RESULTS_DIR
-                output_dir.mkdir(parents=True, exist_ok=True)
-                
-                image_path = Path(inference_result.image_path)
-                output_filename = f"{image_path.stem}_analysis{image_path.suffix}"
-                output_image_path = output_dir / output_filename
-                save_image(annotated_image, output_image_path)
-            except Exception as e:
-                print(f"Warning: Could not create annotated image: {e}")
+            # Prefer the YOLO annotated image if it exists
+            if inference_result.output_image_path and Path(inference_result.output_image_path).exists():
                 output_image_path = inference_result.output_image_path
+            else:
+                # Fallback: use original image if YOLO didn't create annotated version
+                output_image_path = inference_result.image_path
         
         return ChipAnalysisResult(
             image_path=inference_result.image_path,
