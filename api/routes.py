@@ -132,8 +132,19 @@ async def analyze_image(
         
     except HTTPException:
         raise
+    except FileNotFoundError as e:
+        # Model or file not found
+        from backend.src.utils.logger import get_logger
+        logger = get_logger(__name__)
+        logger.error(f"File not found error: {e}")
+        raise HTTPException(status_code=404, detail=f"File not found: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log full error for debugging
+        from backend.src.utils.logger import get_logger
+        import traceback
+        logger = get_logger(__name__)
+        logger.error(f"Error analyzing image: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Error analyzing image: {str(e)}")
 
 
 @router.post("/analyze/batch")
