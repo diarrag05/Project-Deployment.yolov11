@@ -98,6 +98,21 @@ class YOLOInferenceService:
         # Always load original image (needed for visualization even if no masks)
         image = load_image(image_path)
         
+        # Ensure image is in RGB format and uint8
+        if len(image.shape) == 2:
+            # Grayscale: convert to RGB
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        elif len(image.shape) == 3 and image.shape[2] == 4:
+            # RGBA: convert to RGB
+            image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+        
+        # Ensure uint8 format
+        if image.dtype != np.uint8:
+            if image.max() <= 1.0:
+                image = (image * 255).astype(np.uint8)
+            else:
+                image = image.astype(np.uint8)
+        
         if result.masks is not None and len(result.masks) > 0:
             
             # Extract mask data
@@ -145,7 +160,7 @@ class YOLOInferenceService:
                 )
             else:
                 # No masks but we still want to save the original image
-                annotated_image = image
+                annotated_image = image.copy()
             
             # Save output image
             if save_output:
@@ -154,7 +169,24 @@ class YOLOInferenceService:
                 
                 output_filename = f"{image_path.stem}_inference{image_path.suffix}"
                 output_image_path = output_dir / output_filename
+                
+                # Ensure image is in correct format before saving
+                if annotated_image.dtype != np.uint8:
+                    if annotated_image.max() <= 1.0:
+                        annotated_image = (annotated_image * 255).astype(np.uint8)
+                    else:
+                        annotated_image = annotated_image.astype(np.uint8)
+                
                 save_image(annotated_image, output_image_path)
+        else:
+            # No masks detected, but still save the original image for display
+            if save_output:
+                output_dir = Path(output_dir) if output_dir else Config.INFERENCE_DIR
+                output_dir.mkdir(parents=True, exist_ok=True)
+                
+                output_filename = f"{image_path.stem}_inference{image_path.suffix}"
+                output_image_path = output_dir / output_filename
+                save_image(image, output_image_path)
         
         processing_time = time.time() - start_time
         
