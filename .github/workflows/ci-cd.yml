@@ -113,11 +113,5 @@ jobs:
         az webapp config appsettings set \
           --name ${{ env.AZURE_WEBAPP_NAME }} \
           --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
-          --settings \
-            FASTAPI_ENV=production \
-            FASTAPI_DEBUG=False \
-            WEBSITE_HOSTNAME=${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net \
-            DOCKER_REGISTRY_SERVER_URL=https://${{ env.AZURE_REGISTRY_NAME }}.azurecr.io \
-            DOCKER_REGISTRY_SERVER_USERNAME=${{ secrets.AZURE_REGISTRY_USERNAME }} \
-            DOCKER_REGISTRY_SERVER_PASSWORD=${{ secrets.AZURE_REGISTRY_PASSWORD }}
+          --settings FASTAPI_ENV=production FASTAPI_DEBUG=False WEBSITE_HOSTNAME=${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net
 
