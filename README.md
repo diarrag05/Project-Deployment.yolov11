@@ -689,6 +689,12 @@ python inference.py --source dataset/test/images/image.jpg --save-txt
 - First request may be slower as the model loads
 - Subsequent requests are fast as the model is reused
 
+### Concurrency
+
+- The application supports multiple concurrent users (5-10 users on a single instance)
+- FastAPI async endpoints handle concurrent requests efficiently
+- SAM and YOLO models are shared across requests (memory efficient)
+
 ## 🐛 Issues Encountered and Solutions
 
 ### Issue 1: Shape Mismatch Error
