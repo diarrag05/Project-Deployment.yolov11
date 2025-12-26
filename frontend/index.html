@@ -1702,15 +1702,59 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                // Check if response is JSON before parsing
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // If not JSON, get text and try to parse as JSON, or show error
+                    const text = await response.text();
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        // If parsing fails, create error object from text
+                        throw new Error(`Server error (${response.status}): ${text.substring(0, 200)}`);
+                    }
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Error during segmentation');
+                    // FastAPI returns errors in 'detail' field
+                    let errorMessage = 'Error during segmentation';
+                    let errorDetails = '';
+                    let troubleshooting = '';
+                    
+                    if (data.detail) {
+                        // If detail is an object (e.g., from HTTPException with dict)
+                        if (typeof data.detail === 'object') {
+                            errorMessage = data.detail.error || data.detail.message || 'Error during segmentation';
+                            errorDetails = data.detail.message || data.detail.error || '';
+                            troubleshooting = data.detail.troubleshooting || '';
+                        } else {
+                            errorMessage = data.detail;
+                            errorDetails = data.detail;
+                        }
+                    } else if (data.error) {
+                        errorMessage = data.error;
+                        errorDetails = data.error;
+                    }
+                    
+                    // Create detailed error message
+                    let fullErrorMessage = errorMessage;
+                    if (errorDetails && errorDetails !== errorMessage) {
+                        fullErrorMessage += '\n\nDetails: ' + errorDetails;
+                    }
+                    if (troubleshooting) {
+                        fullErrorMessage += '\n\nTroubleshooting: ' + troubleshooting;
+                    }
+                    
+                    throw new Error(fullErrorMessage);
                 }
 
                 displaySegmentResults(data);
                 showSuccess('segmentSuccess', 'Segmentation completed successfully!');
             } catch (error) {
+                console.error('Segmentation error:', error);
                 showError('segmentError', error.message);
             } finally {
                 hideLoading('segmentLoading');
