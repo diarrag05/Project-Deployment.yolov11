@@ -95,9 +95,10 @@ class YOLOInferenceService:
         masks_info = []
         output_image_path = None
         
+        # Always load original image (needed for visualization even if no masks)
+        image = load_image(image_path)
+        
         if result.masks is not None and len(result.masks) > 0:
-            # Load original image
-            image = load_image(image_path)
             
             # Extract mask data
             masks = []
@@ -142,15 +143,18 @@ class YOLOInferenceService:
                     confidences,
                     self.class_names
                 )
+            else:
+                # No masks but we still want to save the original image
+                annotated_image = image
+            
+            # Save output image
+            if save_output:
+                output_dir = Path(output_dir) if output_dir else Config.INFERENCE_DIR
+                output_dir.mkdir(parents=True, exist_ok=True)
                 
-                # Save output image
-                if save_output:
-                    output_dir = Path(output_dir) if output_dir else Config.INFERENCE_DIR
-                    output_dir.mkdir(parents=True, exist_ok=True)
-                    
-                    output_filename = f"{image_path.stem}_inference{image_path.suffix}"
-                    output_image_path = output_dir / output_filename
-                    save_image(annotated_image, output_image_path)
+                output_filename = f"{image_path.stem}_inference{image_path.suffix}"
+                output_image_path = output_dir / output_filename
+                save_image(annotated_image, output_image_path)
         
         processing_time = time.time() - start_time
         

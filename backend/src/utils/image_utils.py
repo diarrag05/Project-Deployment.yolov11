@@ -16,12 +16,19 @@ def load_image(image_path: str | Path) -> np.ndarray:
     if not image_path.exists():
         raise FileNotFoundError(f"Image not found: {image_path}")
     
-    image = cv2.imread(str(image_path))
+    # Load image (cv2.imread loads in BGR format)
+    image = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
     if image is None:
-        raise ValueError(f"Could not load image: {image_path}")
+        # Try loading as grayscale and convert to RGB
+        image = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+        if image is None:
+            raise ValueError(f"Could not load image: {image_path}")
+        # Convert grayscale to RGB (3 channels)
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+    else:
+        # Convert BGR to RGB
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     
-    # Convert BGR to RGB
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
 
 
@@ -30,13 +37,34 @@ def save_image(image: np.ndarray, output_path: str | Path, format: str = "PNG") 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Convert RGB to BGR for OpenCV
-    if len(image.shape) == 3:
-        image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    # Ensure image is in correct format
+    if len(image.shape) == 2:
+        # Grayscale: convert to BGR (3 channels)
+        image_bgr = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    elif len(image.shape) == 3:
+        if image.shape[2] == 3:
+            # RGB: convert to BGR for OpenCV
+            image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        elif image.shape[2] == 4:
+            # RGBA: convert to BGR (drop alpha)
+            image_bgr = cv2.cvtColor(image, cv2.COLOR_RGBA2BGR)
+        else:
+            image_bgr = image
     else:
         image_bgr = image
     
-    cv2.imwrite(str(output_path), image_bgr)
+    # Ensure values are in correct range (0-255)
+    if image_bgr.dtype != np.uint8:
+        if image_bgr.max() <= 1.0:
+            image_bgr = (image_bgr * 255).astype(np.uint8)
+        else:
+            image_bgr = image_bgr.astype(np.uint8)
+    
+    # Save image
+    success = cv2.imwrite(str(output_path), image_bgr)
+    if not success:
+        raise ValueError(f"Failed to save image to {output_path}")
+    
     return output_path
 
 
