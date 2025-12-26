@@ -2,6 +2,8 @@
 
 FastAPI application for automatic detection and segmentation of electronic components (chips) and defects (holes/voids) using YOLOv11 segmentation, with manual correction via SAM (Segment Anything Model) and active learning capabilities.
 
+<!-- Trigger CI/CD build -->
+
 ## 📋 Table of Contents
 
 - [Overview](#overview)
