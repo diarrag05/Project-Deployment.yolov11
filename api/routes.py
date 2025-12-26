@@ -786,6 +786,7 @@ async def get_image(image_path: str, request: Request = ...):
     
     Args:
         image_path: Relative path to image (can be just filename or relative path from outputs/)
+                    Can also be a full path like /app/outputs/inference/image.jpg
     
     Returns:
         Image file
@@ -793,40 +794,55 @@ async def get_image(image_path: str, request: Request = ...):
     try:
         storage_manager, training_job_manager, upload_dir = get_managers(request)
         
+        # Decode URL-encoded path (handles %2F -> /)
+        from urllib.parse import unquote
+        image_path = unquote(image_path)
+        
         # Security: prevent directory traversal
         path_obj = Path(image_path)
         
-        # If it's just a filename, search in all directories
-        if not path_obj.parent or path_obj.parent == Path('.'):
-            filename = path_obj.name
-            
-            # Check in various directories
-            possible_paths = [
-                Config.INFERENCE_DIR / filename,
-                Config.RESULTS_DIR / filename,
-                Config.SAM_OUTPUT_DIR / filename,
-                upload_dir / filename,
-                Config.OUTPUT_DIR / 'validated_images' / 'images' / filename,
-            ]
-            
-            for path in possible_paths:
-                if path.exists() and path.is_file():
-                    return FileResponse(str(path))
-        else:
-            # Try as relative path from outputs directory
-            try:
-                full_path = Config.OUTPUT_DIR / path_obj
-                resolved_path = full_path.resolve()
-                outputs_resolved = Config.OUTPUT_DIR.resolve()
-                
-                if str(resolved_path).startswith(str(outputs_resolved)) and resolved_path.exists() and resolved_path.is_file():
-                    return FileResponse(str(resolved_path))
-            except (ValueError, OSError):
-                pass
+        # Extract just the filename (handles both relative and absolute paths)
+        # e.g., "/app/outputs/inference/image.jpg" -> "image.jpg"
+        # or "outputs/inference/image.jpg" -> "image.jpg"
+        filename = path_obj.name
         
-        raise HTTPException(status_code=404, detail="Image not found")
+        # Check in various directories (by filename)
+        possible_paths = [
+            Config.INFERENCE_DIR / filename,
+            Config.RESULTS_DIR / filename,
+            Config.SAM_OUTPUT_DIR / filename,
+            upload_dir / filename,
+            Config.OUTPUT_DIR / 'validated_images' / 'images' / filename,
+        ]
+        
+        # Also try if it's a relative path from outputs
+        # e.g., "outputs/inference/image.jpg" or "inference/image.jpg"
+        if len(path_obj.parts) > 1:
+            # Remove leading "/app" or "app" if present
+            parts = list(path_obj.parts)
+            if parts[0] in ('', 'app'):
+                parts = parts[1:]
+            
+            # Try relative to OUTPUT_DIR
+            if parts:
+                relative_path = Path(*parts)
+                possible_paths.append(Config.OUTPUT_DIR / relative_path)
+                
+                # Also try with just the last part (filename)
+                if len(parts) > 1:
+                    possible_paths.append(Config.OUTPUT_DIR / parts[-1])
+        
+        # Try all possible paths
+        for path in possible_paths:
+            if path.exists() and path.is_file():
+                return FileResponse(str(path))
+        
+        # Log for debugging
+        logger.warning(f"Image not found: {image_path}. Searched in: {[str(p) for p in possible_paths[:5]]}")
+        raise HTTPException(status_code=404, detail=f"Image not found: {filename}")
         
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Error serving image {image_path}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
