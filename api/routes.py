@@ -271,7 +271,14 @@ async def segment_image(
         JSON with segmentation results
     """
     if not allowed_file(file.filename):
-        raise HTTPException(status_code=400, detail="Invalid file type")
+        raise HTTPException(
+            status_code=400,
+            detail={
+                'error': 'Invalid file type',
+                'message': f'File type not allowed: {file.filename}',
+                'troubleshooting': 'Please upload a valid image file (jpg, jpeg, png, bmp)'
+            }
+        )
     
     try:
         storage_manager, training_job_manager, upload_dir = get_managers(request)
@@ -285,15 +292,130 @@ async def segment_image(
             content = await file.read()
             buffer.write(content)
         
+        # Parse points and labels with better error handling
+        try:
+            points_list = json.loads(points)
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON format for points: {points}. Error: {e}")
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': 'Invalid points format',
+                    'message': f'Points must be a valid JSON array. Received: {points[:100]}...',
+                    'troubleshooting': 'Points should be in format: [[x1, y1], [x2, y2], ...]',
+                    'json_error': str(e)
+                }
+            )
+        
+        # Validate points format
+        if not isinstance(points_list, list):
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': 'Invalid points format',
+                    'message': 'Points must be a JSON array',
+                    'troubleshooting': 'Points should be in format: [[x1, y1], [x2, y2], ...]'
+                }
+            )
+        
+        if len(points_list) == 0:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'error': 'No points provided',
+                    'message': 'At least one point is required for segmentation',
+                    'troubleshooting': 'Please select at least one point on the image'
+                }
+            )
+        
+        # Validate each point
+        for i, point in enumerate(points_list):
+            if not isinstance(point, (list, tuple)) or len(point) != 2:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        'error': 'Invalid point format',
+                        'message': f'Point {i} must be [x, y] format. Got: {point}',
+                        'troubleshooting': 'Each point should be [x, y] where x and y are numbers'
+                    }
+                )
+            try:
+                x, y = float(point[0]), float(point[1])
+                if x < 0 or y < 0:
+                    raise HTTPException(
+                        status_code=400,
+                        detail={
+                            'error': 'Invalid point coordinates',
+                            'message': f'Point {i} has negative coordinates: [{x}, {y}]',
+                            'troubleshooting': 'Coordinates must be positive numbers'
+                        }
+                    )
+            except (ValueError, TypeError) as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        'error': 'Invalid point coordinates',
+                        'message': f'Point {i} coordinates must be numbers. Got: {point}',
+                        'troubleshooting': 'Each point should be [x, y] where x and y are numbers'
+                    }
+                )
+        
+        # Parse labels
+        try:
+            if point_labels:
+                labels_list = json.loads(point_labels)
+                if not isinstance(labels_list, list):
+                    raise ValueError("Labels must be a list")
+                if len(labels_list) != len(points_list):
+                    # Pad or truncate labels to match points
+                    if len(labels_list) < len(points_list):
+                        labels_list.extend([1] * (len(points_list) - len(labels_list)))
+                    else:
+                        labels_list = labels_list[:len(points_list)]
+            else:
+                labels_list = [1] * len(points_list)
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON format for labels: {point_labels}. Using default labels. Error: {e}")
+            labels_list = [1] * len(points_list)
+        
         # Use singleton SAM service (model loaded once, reused) - lazy import
-        from api.sam_manager import get_sam_service
-        sam_service = get_sam_service()
+        try:
+            from api.sam_manager import get_sam_service
+            sam_service = get_sam_service()
+        except ImportError as e:
+            logger.error(f"SAM import error: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    'error': 'SAM not available',
+                    'message': 'SAM (Segment Anything Model) is not installed or not available',
+                    'troubleshooting': 'Please ensure segment-anything package is installed'
+                }
+            )
+        except Exception as e:
+            logger.error(f"SAM service initialization error: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    'error': 'SAM initialization failed',
+                    'message': f'Failed to initialize SAM service: {str(e)}',
+                    'troubleshooting': 'Check server logs for details. SAM model may be downloading or loading.'
+                }
+            )
         
-        # Parse points and labels
-        points_list = json.loads(points)
-        labels_list = json.loads(point_labels) if point_labels else [1] * len(points_list)
-        
-        result = sam_service.segment_guided(str(file_path), points_list, labels_list)
+        # Run segmentation
+        try:
+            result = sam_service.segment_guided(str(file_path), points_list, labels_list)
+        except Exception as e:
+            logger.error(f"SAM segmentation error: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    'error': 'Segmentation failed',
+                    'message': f'SAM segmentation failed: {str(e)}',
+                    'troubleshooting': 'Check that the image is valid and points are within image bounds'
+                }
+            )
         
         return {
             'image_path': result.image_path,
@@ -305,10 +427,19 @@ async def segment_image(
             'point_labels': labels_list
         }
         
-    except ImportError:
-        raise HTTPException(status_code=500, detail="SAM not available. Please install segment-anything.")
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Unexpected error in segment_image: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                'error': 'Internal server error',
+                'message': f'An unexpected error occurred: {str(e)}',
+                'troubleshooting': 'Check server logs for details'
+            }
+        )
 
 
 @router.post("/validate/from-segmentation")
