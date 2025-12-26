@@ -83,6 +83,49 @@ async def ready():
     """Readiness probe - even simpler than health check for faster startup."""
     return {"ready": True}
 
+@app.get("/test-blob-storage")
+async def test_blob_storage():
+    """Test endpoint to verify Blob Storage connection and model availability."""
+    import os
+    from api.model_loader import download_from_blob
+    
+    storage_account = os.getenv("AZURE_STORAGE_ACCOUNT")
+    storage_key = os.getenv("AZURE_STORAGE_KEY")
+    container_name = os.getenv("AZURE_STORAGE_CONTAINER", "models")
+    
+    result = {
+        "storage_account_configured": storage_account is not None,
+        "storage_key_configured": storage_key is not None,
+        "container_name": container_name,
+        "models_in_blob": []
+    }
+    
+    if not storage_account or not storage_key:
+        result["error"] = "Storage account credentials not configured"
+        return result
+    
+    try:
+        from azure.storage.blob import BlobServiceClient
+        
+        account_url = f"https://{storage_account}.blob.core.windows.net"
+        blob_service = BlobServiceClient(
+            account_url=account_url,
+            credential=storage_key
+        )
+        
+        # List blobs in container
+        container_client = blob_service.get_container_client(container_name)
+        blobs = container_client.list_blobs()
+        
+        result["models_in_blob"] = [blob.name for blob in blobs]
+        result["connection_status"] = "success"
+        
+    except Exception as e:
+        result["connection_status"] = "failed"
+        result["error"] = str(e)
+    
+    return result
+
 # Note: SAM model is loaded lazily on first use (not at startup)
 # This allows the application to start quickly and pass Azure's startup probe
 # The model will be loaded when the first SAM segmentation request is made
