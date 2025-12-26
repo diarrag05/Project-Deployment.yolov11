@@ -1,38 +1,59 @@
 """
-API routes for chip-and-hole detection system.
+FastAPI routes for chip-and-hole detection system.
 """
 import os
 import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-from flask import Blueprint, request, jsonify, send_file, current_app
-from werkzeug.utils import secure_filename
+import json
 import uuid
+import io
+import csv
+from pathlib import Path
+from typing import List, Optional
+from datetime import datetime
+
+from fastapi import APIRouter, UploadFile, File, Form, Request, HTTPException, Query
+from fastapi.responses import FileResponse, StreamingResponse
+import numpy as np
+import cv2
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from backend.src.services import (
     YOLOInferenceService,
     VoidRateCalculator,
-    SAMSegmentationService,
     LabelManager,
     TrainingService
 )
+from api.sam_manager import get_sam_service
 from backend.src.config import Config
-from backend.src.utils.export_utils import export_results_to_csv
-from storage import StorageManager
-from training_job import TrainingJobManager
+from backend.src.utils.image_utils import load_image
+from api.storage import StorageManager
+from api.training_job import TrainingJobManager
 
+router = APIRouter()
 
-api_bp = Blueprint('api', __name__)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 
 
 def allowed_file(filename: str) -> bool:
     """Check if file extension is allowed."""
-    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@api_bp.route('/analyze', methods=['POST'])
-def analyze_image():
+def get_managers(request: Request) -> tuple[StorageManager, TrainingJobManager, Path]:
+    """Get managers from app state."""
+    storage_manager: StorageManager = request.app.state.storage_manager
+    training_job_manager: TrainingJobManager = request.app.state.training_job_manager
+    upload_dir: Path = request.app.state.upload_dir
+    return storage_manager, training_job_manager, upload_dir
+
+
+@router.post("/analyze")
+async def analyze_image(
+    file: UploadFile = File(...),
+    threshold: Optional[float] = Form(None),
+    request: Request = ...
+):
     """
     Analyze an image with YOLO and calculate void rate.
     
@@ -43,55 +64,51 @@ def analyze_image():
     Returns:
         JSON with analysis results
     """
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
     if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type'}), 400
+        raise HTTPException(status_code=400, detail="Invalid file type")
     
     try:
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
+        
         # Save uploaded file temporarily
-        upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
         upload_dir.mkdir(parents=True, exist_ok=True)
-        
-        filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4()}_{filename}"
+        unique_filename = f"{uuid.uuid4()}_{file.filename}"
         file_path = upload_dir / unique_filename
-        file.save(str(file_path))
         
-        # Get threshold if provided
-        threshold = request.form.get('threshold', type=float)
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
         
         # Check if model exists, if not, start initial training
         if not Config.DEFAULT_MODEL.exists():
-            # Check if training is already in progress
-            job_manager: TrainingJobManager = current_app.training_job_manager
-            if job_manager.is_training_in_progress():
-                return jsonify({
-                    'error': 'No model found. Initial training is already in progress. Please wait for training to complete.',
-                    'training_id': job_manager.get_latest_training().training_id if job_manager.get_latest_training() else None
-                }), 503
+            if training_job_manager.is_training_in_progress():
+                latest = training_job_manager.get_latest_training()
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        'error': 'No model found. Initial training is already in progress. Please wait for training to complete.',
+                        'training_id': latest.training_id if latest else None
+                    }
+                )
             
-            # Start initial training automatically
             from backend.src.utils.logger import get_logger
             logger = get_logger(__name__)
             logger.info("No model found. Starting initial training automatically...")
             
-            training_id = job_manager.start_training(
+            training_id = training_job_manager.start_training(
                 epochs=Config.TRAINING_EPOCHS,
                 batch_size=Config.TRAINING_BATCH_SIZE,
                 patience=Config.TRAINING_PATIENCE
             )
             
-            return jsonify({
-                'error': 'No model found. Initial training has been started automatically.',
-                'training_id': training_id,
-                'message': 'Please wait for training to complete, then try again.'
-            }), 503
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    'error': 'No model found. Initial training has been started automatically.',
+                    'training_id': training_id,
+                    'message': 'Please wait for training to complete, then try again.'
+                }
+            )
         
         # Run inference
         inference_service = YOLOInferenceService()
@@ -101,8 +118,8 @@ def analyze_image():
         calculator = VoidRateCalculator(threshold=threshold)
         analysis = calculator.analyze_chip(inference_result, save_annotated_image=True)
         
-        # Prepare response with mask info for validation
-        response = {
+        # Prepare response
+        return {
             'image_path': analysis.image_path,
             'output_image_path': analysis.output_image_path,
             'statistics': analysis.statistics.dict(),
@@ -113,14 +130,18 @@ def analyze_image():
             'masks_info': [mask.dict() for mask in inference_result.masks]
         }
         
-        return jsonify(response), 200
-        
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/analyze/batch', methods=['POST'])
-def analyze_batch():
+@router.post("/analyze/batch")
+async def analyze_batch(
+    files: List[UploadFile] = File(...),
+    threshold: Optional[float] = Form(None),
+    request: Request = ...
+):
     """
     Analyze multiple images.
     
@@ -131,16 +152,11 @@ def analyze_batch():
     Returns:
         JSON with list of analysis results
     """
-    if 'files' not in request.files:
-        return jsonify({'error': 'No files provided'}), 400
-    
-    files = request.files.getlist('files')
-    if not files or files[0].filename == '':
-        return jsonify({'error': 'No files selected'}), 400
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided")
     
     try:
-        threshold = request.form.get('threshold', type=float)
-        upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
         upload_dir.mkdir(parents=True, exist_ok=True)
         
         results = []
@@ -152,10 +168,12 @@ def analyze_batch():
                 continue
             
             # Save file
-            filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4()}_{filename}"
+            unique_filename = f"{uuid.uuid4()}_{file.filename}"
             file_path = upload_dir / unique_filename
-            file.save(str(file_path))
+            
+            with open(file_path, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
             
             # Analyze
             inference_result = inference_service.predict(str(file_path), save_output=True)
@@ -169,14 +187,20 @@ def analyze_batch():
                 'threshold': analysis.threshold
             })
         
-        return jsonify({'results': results, 'count': len(results)}), 200
+        return {'results': results, 'count': len(results)}
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/segment', methods=['POST'])
-def segment_image():
+@router.post("/segment")
+async def segment_image(
+    file: UploadFile = File(...),
+    points: str = Form(...),
+    point_labels: Optional[str] = Form(None),
+    class_id: Optional[int] = Form(None),
+    request: Request = ...
+):
     """
     Segment an image using SAM (guided mode only).
     
@@ -184,65 +208,60 @@ def segment_image():
         - file: Image file (multipart/form-data)
         - points: JSON array of [x, y] points (required)
         - point_labels: JSON array of labels (1=foreground, 0=background)
+        - class_id: Optional class ID (0=chip, 1=hole)
     
     Returns:
         JSON with segmentation results
     """
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file provided'}), 400
-    
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': 'No file selected'}), 400
-    
     if not allowed_file(file.filename):
-        return jsonify({'error': 'Invalid file type'}), 400
+        raise HTTPException(status_code=400, detail="Invalid file type")
     
     try:
-        # Save uploaded file
-        upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
         upload_dir.mkdir(parents=True, exist_ok=True)
         
-        filename = secure_filename(file.filename)
-        unique_filename = f"{uuid.uuid4()}_{filename}"
+        # Save uploaded file
+        unique_filename = f"{uuid.uuid4()}_{file.filename}"
         file_path = upload_dir / unique_filename
-        file.save(str(file_path))
         
-        sam_service = SAMSegmentationService()
+        with open(file_path, "wb") as buffer:
+            content = await file.read()
+            buffer.write(content)
         
-        # Guided mode only - require points
-        points_json = request.form.get('points')
-        labels_json = request.form.get('point_labels')
+        # Use singleton SAM service (model loaded once, reused)
+        sam_service = get_sam_service()
         
-        if not points_json:
-            return jsonify({'error': 'Points required for segmentation'}), 400
+        # Parse points and labels
+        points_list = json.loads(points)
+        labels_list = json.loads(point_labels) if point_labels else [1] * len(points_list)
         
-        import json
-        points = json.loads(points_json)
-        point_labels = json.loads(labels_json) if labels_json else [1] * len(points)
+        result = sam_service.segment_guided(str(file_path), points_list, labels_list)
         
-        result = sam_service.segment_guided(str(file_path), points, point_labels)
-        
-        response = {
+        return {
             'image_path': result.image_path,
             'output_image_path': result.output_image_path,
             'num_masks': result.num_masks,
             'mode': 'guided',
             'processing_time': result.processing_time,
-            'points': points,
-            'point_labels': point_labels
+            'points': points_list,
+            'point_labels': labels_list
         }
         
-        return jsonify(response), 200
-        
     except ImportError:
-        return jsonify({'error': 'SAM not available. Please install segment-anything.'}), 500
+        raise HTTPException(status_code=500, detail="SAM not available. Please install segment-anything.")
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/validate/from-segmentation', methods=['POST'])
-def validate_from_segmentation():
+@router.post("/validate/from-segmentation")
+async def validate_from_segmentation(
+    image_path: str = Form(...),
+    points: str = Form(...),
+    point_labels: Optional[str] = Form(None),
+    class_id: Optional[int] = Form(None),
+    metadata: Optional[str] = Form("{}"),
+    request: Request = ...
+):
     """
     Validate an image directly from SAM segmentation results (guided mode only).
     
@@ -251,57 +270,43 @@ def validate_from_segmentation():
         - points: JSON array of [x, y] points (required)
         - point_labels: JSON array of labels (1=foreground, 0=background)
         - class_id: Optional class ID (default: chip class)
+        - metadata: Optional JSON metadata
     
     Returns:
         JSON with storage ID
     """
     try:
-        import json
-        import numpy as np
-        from backend.src.utils.image_utils import load_image
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
         
-        image_path = request.json.get('image_path') if request.is_json else request.form.get('image_path')
-        if not image_path:
-            return jsonify({'error': 'image_path required'}), 400
-        
-        image_path = Path(image_path)
-        if not image_path.exists():
-            return jsonify({'error': 'Image not found'}), 404
+        image_path_obj = Path(image_path)
+        if not image_path_obj.exists():
+            raise HTTPException(status_code=404, detail="Image not found")
         
         # Load image to get dimensions
-        image = load_image(str(image_path))
+        image = load_image(str(image_path_obj))
         image_height, image_width = image.shape[:2]
         
-        # Re-run SAM segmentation to get masks (guided mode only)
-        sam_service = SAMSegmentationService()
-        masks = []
-        class_ids = []
+        # Parse points and labels
+        points_list = json.loads(points) if isinstance(points, str) else points
+        labels_list = json.loads(point_labels) if point_labels and isinstance(point_labels, str) else (
+            json.loads(point_labels) if point_labels else [1] * len(points_list)
+        )
         
-        # Guided mode only - require points
-        points_json = request.json.get('points') if request.is_json else request.form.get('points')
-        labels_json = request.json.get('point_labels') if request.is_json else request.form.get('point_labels')
-        
-        if not points_json:
-            return jsonify({'error': 'Points required for segmentation'}), 400
-        
-        points = json.loads(points_json) if isinstance(points_json, str) else points_json
-        point_labels = json.loads(labels_json) if labels_json and isinstance(labels_json, str) else (labels_json if labels_json else [1] * len(points))
-        
-        # Re-run guided segmentation
+        # Re-run SAM segmentation (use singleton - model already loaded)
+        sam_service = get_sam_service()
         result = sam_service.segment_guided(
-            str(image_path),
-            points=points,
-            point_labels=point_labels,
+            str(image_path_obj),
+            points=points_list,
+            point_labels=labels_list,
             save_output=False
         )
         
-        # Re-run to get actual mask
-        import cv2
+        # Get actual mask
         image_rgb = image if len(image.shape) == 3 else cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         sam_service.predictor.set_image(image_rgb)
         
-        input_points = np.array(points)
-        input_labels = np.array(point_labels)
+        input_points = np.array(points_list)
+        input_labels = np.array(labels_list)
         
         mask_results, scores, logits = sam_service.predictor.predict(
             point_coords=input_points,
@@ -313,55 +318,58 @@ def validate_from_segmentation():
         best_mask_idx = np.argmax(scores)
         best_mask = mask_results[best_mask_idx]
         
-        # Get class ID (default to chip)
-        provided_class_id = request.json.get('class_id') if request.is_json else request.form.get('class_id')
-        class_id = int(provided_class_id) if provided_class_id else Config.CHIP_CLASS_ID
+        # Get class ID
+        class_id_final = class_id if class_id is not None else Config.CHIP_CLASS_ID
         
-        masks.append(best_mask.astype(bool))
-        class_ids.append(class_id)
+        masks = [best_mask.astype(bool)]
+        class_ids = [class_id_final]
         
         if not masks:
-            return jsonify({'error': 'No masks found to validate'}), 400
+            raise HTTPException(status_code=400, detail="No masks found to validate")
         
         # Save labels
         label_manager = LabelManager()
         labels_path = label_manager.save_labels_from_masks(
             masks,
             class_ids,
-            image_path,
+            image_path_obj,
             image_width=image_width,
             image_height=image_height
         )
         
-        # Get metadata
-        metadata_json = request.json.get('metadata', '{}') if request.is_json else request.form.get('metadata', '{}')
-        metadata = json.loads(metadata_json) if isinstance(metadata_json, str) else (metadata_json or {})
-        metadata['segmentation_mode'] = 'guided'
+        # Parse metadata
+        metadata_dict = json.loads(metadata) if isinstance(metadata, str) else (metadata or {})
+        metadata_dict['segmentation_mode'] = 'guided'
         
         # Save to storage
-        storage_manager: StorageManager = current_app.storage_manager
         storage_id = storage_manager.save_validated_image(
-            image_path,
+            image_path_obj,
             labels_path,
-            metadata
+            metadata_dict
         )
         
-        return jsonify({
+        return {
             'storage_id': storage_id,
-            'image_path': str(image_path),
+            'image_path': str(image_path_obj),
             'labels_path': str(labels_path),
             'message': 'Image validated and saved for retraining',
             'num_masks': len(masks)
-        }), 200
+        }
         
     except ImportError:
-        return jsonify({'error': 'SAM not available. Please install segment-anything.'}), 500
+        raise HTTPException(status_code=500, detail="SAM not available. Please install segment-anything.")
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/validate', methods=['POST'])
-def validate_image():
+@router.post("/validate")
+async def validate_image(
+    image_path: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    labels: str = Form(...),
+    metadata: Optional[str] = Form("{}"),
+    request: Request = ...
+):
     """
     Validate and save an image with corrected labels for retraining.
     
@@ -374,46 +382,36 @@ def validate_image():
         JSON with storage ID
     """
     try:
-        import json
-        import numpy as np
-        from src.utils.image_utils import load_image
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
         
         # Handle file upload or path
-        if 'file' in request.files:
-            file = request.files['file']
-            if file.filename == '':
-                return jsonify({'error': 'No file selected'}), 400
-            
-            upload_dir = Path(current_app.config['UPLOAD_FOLDER'])
+        if file:
             upload_dir.mkdir(parents=True, exist_ok=True)
+            unique_filename = f"{uuid.uuid4()}_{file.filename}"
+            image_path_obj = upload_dir / unique_filename
             
-            filename = secure_filename(file.filename)
-            unique_filename = f"{uuid.uuid4()}_{filename}"
-            image_path = upload_dir / unique_filename
-            file.save(str(image_path))
+            with open(image_path_obj, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
+        elif image_path:
+            image_path_obj = Path(image_path)
+            if not image_path_obj.exists():
+                raise HTTPException(status_code=404, detail="Image not found")
         else:
-            image_path = Path(request.form.get('image_path'))
-            if not image_path.exists():
-                return jsonify({'error': 'Image not found'}), 404
+            raise HTTPException(status_code=400, detail="Either file or image_path required")
         
-        # Get labels
-        labels_json = request.form.get('labels')
-        if not labels_json:
-            return jsonify({'error': 'Labels required'}), 400
-        
-        labels_data = json.loads(labels_json)
+        # Parse labels
+        labels_data = json.loads(labels)
         
         # Convert labels to masks
-        image = load_image(str(image_path))
+        image = load_image(str(image_path_obj))
         image_height, image_width = image.shape[:2]
         
         masks = []
         class_ids = []
         
         for label_data in labels_data:
-            # Expect polygon points in normalized YOLO format
             if 'polygon' in label_data:
-                # Convert normalized polygon to mask
                 polygon = label_data['polygon']
                 class_id = label_data['class_id']
                 
@@ -425,7 +423,6 @@ def validate_image():
                     abs_polygon.append([x, y])
                 
                 # Create mask from polygon
-                import cv2
                 mask = np.zeros((image_height, image_width), dtype=np.uint8)
                 cv2.fillPoly(mask, [np.array(abs_polygon, dtype=np.int32)], 255)
                 masks.append(mask.astype(bool))
@@ -436,40 +433,44 @@ def validate_image():
         labels_path = label_manager.save_labels_from_masks(
             masks,
             class_ids,
-            image_path,
+            image_path_obj,
             image_width=image_width,
             image_height=image_height
         )
         
-        # Get metadata
-        metadata_json = request.form.get('metadata', '{}')
-        metadata = json.loads(metadata_json)
+        # Parse metadata
+        metadata_dict = json.loads(metadata)
         
         # Save to storage
-        storage_manager: StorageManager = current_app.storage_manager
         storage_id = storage_manager.save_validated_image(
-            image_path,
+            image_path_obj,
             labels_path,
-            metadata
+            metadata_dict
         )
         
-        return jsonify({
+        return {
             'storage_id': storage_id,
-            'image_path': str(image_path),
+            'image_path': str(image_path_obj),
             'labels_path': str(labels_path),
             'message': 'Image validated and saved for retraining'
-        }), 200
+        }
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/retrain', methods=['POST'])
-def retrain():
+@router.post("/retrain")
+async def retrain(
+    epochs: Optional[int] = None,
+    batch_size: Optional[int] = None,
+    patience: Optional[int] = None,
+    move_validated: bool = True,
+    request: Request = ...
+):
     """
     Start model retraining with validated images.
     
-    Request:
+    Request body (JSON):
         - epochs: Optional number of epochs (int)
         - batch_size: Optional batch size (int)
         - patience: Optional early stopping patience (int)
@@ -479,45 +480,47 @@ def retrain():
         JSON with training job ID
     """
     try:
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
+        
         # Check if training is already in progress
-        job_manager: TrainingJobManager = current_app.training_job_manager
-        if job_manager.is_training_in_progress():
-            return jsonify({
-                'error': 'Training already in progress',
-                'latest_training': job_manager.get_latest_training().dict() if job_manager.get_latest_training() else None
-            }), 409
+        if training_job_manager.is_training_in_progress():
+            latest = training_job_manager.get_latest_training()
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    'error': 'Training already in progress',
+                    'latest_training': latest.dict() if latest else None
+                }
+            )
         
         # Move validated images to dataset if requested
-        move_validated = request.json.get('move_validated', True) if request.is_json else True
-        
         if move_validated:
-            storage_manager: StorageManager = current_app.storage_manager
             storage_manager.move_all_to_dataset()
         
-        # Get training parameters
-        epochs = request.json.get('epochs') if request.is_json else None
-        batch_size = request.json.get('batch_size') if request.is_json else None
-        patience = request.json.get('patience') if request.is_json else None
-        
         # Start training
-        training_id = job_manager.start_training(
+        training_id = training_job_manager.start_training(
             epochs=epochs,
             batch_size=batch_size,
             patience=patience
         )
         
-        return jsonify({
+        return {
             'training_id': training_id,
             'status': 'started',
             'message': 'Training job started'
-        }), 202
+        }
         
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/training/status', methods=['GET'])
-def training_status():
+@router.get("/training/status")
+async def training_status(
+    training_id: Optional[str] = Query(None),
+    request: Request = ...
+):
     """
     Get training status.
     
@@ -528,27 +531,27 @@ def training_status():
         JSON with training status
     """
     try:
-        job_manager: TrainingJobManager = current_app.training_job_manager
-        
-        training_id = request.args.get('training_id')
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
         
         if training_id:
-            result = job_manager.get_training_status(training_id)
+            result = training_job_manager.get_training_status(training_id)
             if not result:
-                return jsonify({'error': 'Training job not found'}), 404
+                raise HTTPException(status_code=404, detail="Training job not found")
         else:
-            result = job_manager.get_latest_training()
+            result = training_job_manager.get_latest_training()
             if not result:
-                return jsonify({'message': 'No training jobs found'}), 200
+                return {'message': 'No training jobs found'}
         
-        return jsonify(result.dict()), 200
+        return result.dict()
         
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/validated-images', methods=['GET'])
-def get_validated_images():
+@router.get("/validated-images")
+async def get_validated_images(request: Request = ...):
     """
     Get list of validated images waiting for retraining.
     
@@ -556,20 +559,20 @@ def get_validated_images():
         JSON with list of validated images
     """
     try:
-        storage_manager: StorageManager = current_app.storage_manager
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
         validated_images = storage_manager.get_validated_images()
         
-        return jsonify({
+        return {
             'count': len(validated_images),
             'images': validated_images
-        }), 200
+        }
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/results/export', methods=['GET'])
-def export_results():
+@router.get("/results/export")
+async def export_results(format: str = Query("csv", regex="^(csv|json)$")):
     """
     Export analysis results to CSV.
     
@@ -580,27 +583,28 @@ def export_results():
         CSV or JSON file
     """
     try:
-        # This would typically fetch results from a database
-        # For now, we'll export from the results directory
         results_dir = Config.RESULTS_DIR
         csv_path = results_dir / 'analysis_results.csv'
         
         if not csv_path.exists():
-            return jsonify({'error': 'No results to export'}), 404
+            raise HTTPException(status_code=404, detail="No results to export")
         
-        return send_file(
+        return FileResponse(
             str(csv_path),
-            mimetype='text/csv',
-            as_attachment=True,
-            download_name='analysis_results.csv'
+            media_type='text/csv',
+            filename='analysis_results.csv'
         )
         
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/analyze/export-csv', methods=['POST'])
-def export_analyze_results_csv():
+@router.post("/analyze/export-csv")
+async def export_analyze_results_csv(
+    request: Request = ...
+):
     """
     Export analysis results to CSV format.
     
@@ -611,64 +615,43 @@ def export_analyze_results_csv():
         CSV file download
     """
     try:
-        if not request.is_json:
-            return jsonify({'error': 'JSON data required'}), 400
+        # Parse JSON body
+        body = await request.json()
+        data = body.get('analysis_data', body)  # Support both formats
         
-        data = request.json.get('analysis_data')
+        # Debug: Check if data is valid
         if not data:
-            return jsonify({'error': 'analysis_data required'}), 400
-        
-        import io
-        import csv
-        from datetime import datetime
+            raise HTTPException(status_code=400, detail="No analysis data provided")
         
         # Create CSV in memory
         output = io.StringIO()
+        # Exact format as in example: Image, Component, Area, void %, Max.void %
         fieldnames = [
             'Image',
             'Component',
             'Area',
             'void %',
-            'Max.void %',
-            'Chips détectées',
-            'Trous détectés',
-            'Confiance moyenne'
+            'Max.void %'
         ]
         
         writer = csv.DictWriter(output, fieldnames=fieldnames)
         writer.writeheader()
         
         stats = data.get('statistics', {})
+        if not stats:
+            raise HTTPException(status_code=400, detail="No statistics found in analysis data")
+        
         image_path = Path(data.get('image_path', 'unknown'))
-        image_name = image_path.name
+        image_name = image_path.name if image_path.name != 'unknown' else 'unknown_image'
         
-        # Calculate max void % from all holes
+        # Get masks info
         masks_info = data.get('masks_info', [])
-        holes = [m for m in masks_info if m.get('class_id') == 1] if masks_info else []
-        chip_area = stats.get('chip_area_pixels', 0)
-        max_hole_area = max([h.get('area_pixels', 0) for h in holes], default=0)
-        max_void_percent = (max_hole_area / chip_area * 100) if chip_area > 0 else 0.0
         
-        # Write main row with global statistics
-        writer.writerow({
-            'Image': image_name,
-            'Component': 'Global',
-            'Area': chip_area,
-            'void %': f"{stats.get('void_rate_percent', 0.0):.2f}",
-            'Max.void %': f"{max_void_percent:.2f}",
-            'Chips détectées': stats.get('num_chips', 0),
-            'Trous détectés': stats.get('num_holes', 0),
-            'Confiance moyenne': f"{(stats.get('average_confidence', 0.0) * 100):.1f}"
-        })
-        
-        # If we have masks info, try to create per-component rows
-        # masks_info already defined above
+        # Per-component rows only (no Global row)
         if masks_info:
-            # Group chips and holes
-            chips = [m for m in masks_info if m.get('class_id') == 0]  # Assuming 0 is chip class
-            holes = [m for m in masks_info if m.get('class_id') == 1]  # Assuming 1 is hole class
+            chips = [m for m in masks_info if m.get('class_id') == 0]
+            holes = [m for m in masks_info if m.get('class_id') == 1]
             
-            # Helper function to check if a hole is inside a chip bbox
             def is_hole_in_chip(hole_bbox, chip_bbox):
                 """Check if hole center is inside chip bbox."""
                 if not hole_bbox or not chip_bbox or len(hole_bbox) < 4 or len(chip_bbox) < 4:
@@ -678,60 +661,68 @@ def export_analyze_results_csv():
                 return (chip_bbox[0] <= hole_center_x <= chip_bbox[2] and
                         chip_bbox[1] <= hole_center_y <= chip_bbox[3])
             
-            # For each chip, calculate void rate
             for idx, chip in enumerate(chips, 1):
                 chip_area = chip.get('area_pixels', 0)
                 chip_bbox = chip.get('bbox', [])
                 
-                # Find holes that belong to this chip using bbox intersection
+                # Find holes inside this chip
                 holes_in_chip = []
                 for hole in holes:
                     hole_bbox = hole.get('bbox', [])
                     if is_hole_in_chip(hole_bbox, chip_bbox):
                         holes_in_chip.append(hole)
                 
-                # If no holes found with bbox method, use all holes as fallback
-                if not holes_in_chip and holes:
+                # If no holes found in chip but holes exist, consider all holes
+                # (fallback for cases where bbox matching doesn't work perfectly)
+                if not holes_in_chip and holes and len(chips) == 1:
+                    # If only one chip, all holes belong to it
                     holes_in_chip = holes
                 
+                # Calculate void percentages
                 total_holes_area = sum(h.get('area_pixels', 0) for h in holes_in_chip)
                 max_hole_area = max([h.get('area_pixels', 0) for h in holes_in_chip], default=0)
                 
-                void_percent = (total_holes_area / chip_area * 100) if chip_area > 0 else 0.0
-                max_void_percent = (max_hole_area / chip_area * 100) if chip_area > 0 else 0.0
+                # Convert to percentage (not multiplied by 100, as in example: 0.25 = 0.25%)
+                void_percent = (total_holes_area / chip_area) if chip_area > 0 else 0.0
+                max_void_percent = (max_hole_area / chip_area) if chip_area > 0 else 0.0
                 
+                # Format with comma as decimal separator (European format) or dot
+                # Using dot for now, but can be changed to comma if needed
                 writer.writerow({
-                    'Image': image_name if idx == 1 else '',  # Only show image name on first component
+                    'Image': image_name if idx == 1 else '',
                     'Component': idx,
                     'Area': chip_area,
-                    'void %': f"{void_percent:.2f}",
-                    'Max.void %': f"{max_void_percent:.2f}",
-                    'Chips détectées': '',
-                    'Trous détectés': len(holes_in_chip),
-                    'Confiance moyenne': f"{(chip.get('confidence', 0.0) * 100):.1f}"
+                    'void %': f"{void_percent:.2f}".replace('.', ','),  # European format
+                    'Max.void %': f"{max_void_percent:.2f}".replace('.', ',')  # European format
                 })
+        else:
+            # If no chips detected, write at least one row with zeros
+            writer.writerow({
+                'Image': image_name,
+                'Component': 1,
+                'Area': 0,
+                'void %': '0,00',
+                'Max.void %': '0,00'
+            })
         
         # Prepare CSV response
         csv_data = output.getvalue()
         output.close()
         
-        # Create response with CSV
-        response = current_app.response_class(
-            csv_data,
-            mimetype='text/csv; charset=utf-8',
+        return StreamingResponse(
+            io.BytesIO(csv_data.encode('utf-8')),
+            media_type='text/csv; charset=utf-8',
             headers={
                 'Content-Disposition': f'attachment; filename=analysis_results_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
             }
         )
         
-        return response
-        
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@api_bp.route('/images/<path:image_path>', methods=['GET'])
-def get_image(image_path: str):
+@router.get("/images/{image_path:path}")
+async def get_image(image_path: str, request: Request = ...):
     """
     Serve image files.
     
@@ -742,8 +733,9 @@ def get_image(image_path: str):
         Image file
     """
     try:
+        storage_manager, training_job_manager, upload_dir = get_managers(request)
+        
         # Security: prevent directory traversal
-        # Normalize path and get only the filename if it's a relative path
         path_obj = Path(image_path)
         
         # If it's just a filename, search in all directories
@@ -755,30 +747,28 @@ def get_image(image_path: str):
                 Config.INFERENCE_DIR / filename,
                 Config.RESULTS_DIR / filename,
                 Config.SAM_OUTPUT_DIR / filename,
-                Path(current_app.config['UPLOAD_FOLDER']) / filename,
+                upload_dir / filename,
                 Config.OUTPUT_DIR / 'validated_images' / 'images' / filename,
             ]
             
             for path in possible_paths:
                 if path.exists() and path.is_file():
-                    return send_file(str(path))
+                    return FileResponse(str(path))
         else:
             # Try as relative path from outputs directory
-            # Security: ensure path is within outputs directory
             try:
                 full_path = Config.OUTPUT_DIR / path_obj
-                # Resolve to ensure no directory traversal
                 resolved_path = full_path.resolve()
                 outputs_resolved = Config.OUTPUT_DIR.resolve()
                 
-                # Check if resolved path is within outputs directory
                 if str(resolved_path).startswith(str(outputs_resolved)) and resolved_path.exists() and resolved_path.is_file():
-                    return send_file(str(resolved_path))
+                    return FileResponse(str(resolved_path))
             except (ValueError, OSError):
                 pass
         
-        return jsonify({'error': 'Image not found'}), 404
+        raise HTTPException(status_code=404, detail="Image not found")
         
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,2 +1,2 @@
-"""API package for Flask application."""
+"""API package for FastAPI application."""
 
