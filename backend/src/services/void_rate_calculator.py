@@ -92,11 +92,11 @@ class VoidRateCalculator:
         Returns:
             True if usable (void rate < threshold), False otherwise
         """
-        # Si aucune chip n'est détectée, l'image est automatiquement non utilisable
+        # If no chips are detected, the image is automatically not usable
         if statistics.num_chips == 0:
             return False
         
-        # Sinon, vérifier le void rate
+        # Otherwise, check the void rate
         return statistics.void_rate_percent < self.threshold
     
     def analyze_chip(

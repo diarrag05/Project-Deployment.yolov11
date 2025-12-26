@@ -4,6 +4,8 @@ import numpy as np
 from pathlib import Path
 from typing import List, Tuple, Optional
 from PIL import Image, ImageDraw, ImageFont
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for server environments
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 

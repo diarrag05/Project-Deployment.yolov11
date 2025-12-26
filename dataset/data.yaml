@@ -1,6 +1,10 @@
-train: ../dataset/train/images
-val: ../dataset/valid/images
-test: ../dataset/test/images
+# Dataset root path (absolute path to avoid YOLO path resolution issues)
+path: /Users/johannafokui/Documents/PGE4/Deployment & Maintenance of AI Models/project/chip_and_void/Project-Deployment.yolov11/dataset
+
+# Training, validation, and test paths (relative to 'path' above)
+train: train/images
+val: valid/images
+test: test/images
 
 # Number of classes
 nc: 2
