@@ -1194,7 +1194,19 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Error during analysis');
+                    // FastAPI returns errors in 'detail' field
+                    let errorMessage = 'Error during analysis';
+                    if (data.detail) {
+                        // If detail is an object (e.g., from HTTPException with dict)
+                        if (typeof data.detail === 'object') {
+                            errorMessage = data.detail.error || data.detail.message || JSON.stringify(data.detail);
+                        } else {
+                            errorMessage = data.detail;
+                        }
+                    } else if (data.error) {
+                        errorMessage = data.error;
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 displayAnalyzeResults(data);
