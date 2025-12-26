@@ -1194,7 +1194,21 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                // Check if response is JSON before parsing
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    // If not JSON, get text and try to parse as JSON, or show error
+                    const text = await response.text();
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        // If parsing fails, create error object from text
+                        throw new Error(`Server error (${response.status}): ${text.substring(0, 200)}`);
+                    }
+                }
 
                 if (!response.ok) {
                     // FastAPI returns errors in 'detail' field
