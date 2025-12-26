@@ -885,32 +885,86 @@ For questions or issues:
 - Review API documentation at `/docs`
 - Contact the development team
 
-## ☁️ Azure Deployment
+## ☁️ Azure Deployment (Docker)
 
-The application automatically detects Azure deployment and configures itself:
-- **Host**: Automatically set to `0.0.0.0` when `WEBSITE_HOSTNAME` or `PORT` env vars are detected
-- **Port**: Uses Azure's `PORT` environment variable (automatically provided)
-- **Configuration**: Set `FASTAPI_ENV=production` and `FASTAPI_DEBUG=False` in Azure App Service settings
+The application is containerized with Docker and deployed to Azure Web App for Containers.
 
-**Deployment Steps**:
-1. Create Azure App Service (Linux, Python 3.12)
-2. Configure environment variables in Azure Portal:
-   - `FASTAPI_ENV=production`
-   - `FASTAPI_DEBUG=False`
-3. Deploy code via GitHub Actions (see CI/CD section) or Azure CLI
-4. Upload models (`models/best.pt`, `models/sam_vit_h_4b8939.pth`) to Azure Storage or include in deployment
+### Prerequisites
+
+1. **Azure Resources** (create via Azure Portal):
+   - Resource Group: `chip-void-detection-rg`
+   - Azure Container Registry (ACR): `chipvoidregistry` (Basic SKU)
+   - App Service Plan: `chip-void-app-plan` (Linux B1)
+   - Web App: `chip-void-detection` (Docker Container)
+
+2. **GitHub Secrets** (Settings → Secrets → Actions):
+   - `AZURE_CREDENTIALS`: Service Principal JSON
+   - `AZURE_RESOURCE_GROUP`: `chip-void-detection-rg`
+   - `AZURE_REGISTRY_USERNAME`: ACR admin username
+   - `AZURE_REGISTRY_PASSWORD`: ACR admin password
+
+### Deployment Process
+
+**Automatic (via GitHub Actions)**:
+1. Push to `main` or `feature/api` branch
+2. GitHub Actions builds Docker image
+3. Image pushed to Azure Container Registry
+4. Azure Web App automatically deploys new image
+
+**Manual Deployment**:
+```bash
+# Build Docker image
+docker build -t chip-void-detection .
+
+# Tag for ACR
+docker tag chip-void-detection chipvoidregistry.azurecr.io/chip-void-detection:latest
+
+# Login to ACR
+az acr login --name chipvoidregistry
+
+# Push to ACR
+docker push chipvoidregistry.azurecr.io/chip-void-detection:latest
+```
+
+### Configuration
+
+**Azure App Service Settings**:
+- `FASTAPI_ENV=production`
+- `FASTAPI_DEBUG=False`
+- `PORT=8000` (Azure sets this automatically)
+- `WEBSITE_HOSTNAME=chip-void-detection.azurewebsites.net`
+
+**Application URL**:
+- Production: `https://chip-void-detection.azurewebsites.net`
+- API Docs: `https://chip-void-detection.azurewebsites.net/docs`
+
+### Docker Configuration
+
+- **Dockerfile**: Multi-stage build optimized for production
+- **.dockerignore**: Excludes unnecessary files (models, dataset images, etc.)
+- **Health Check**: Automatic health monitoring
+- **Port**: Uses Azure's `PORT` environment variable
 
 ## 🔄 CI/CD Pipeline
 
 **GitHub Actions** (`.github/workflows/ci-cd.yml`):
 - ✅ Automated testing on push/PR
 - ✅ Code linting and formatting checks
-- ✅ Automatic deployment to Azure on main branch
+- ✅ Docker image build and push to ACR
+- ✅ Automatic deployment to Azure Web App
+
+**Workflow Steps**:
+1. **Test**: Run tests and linting
+2. **Build**: Build Docker image and push to ACR
+3. **Deploy**: Deploy to Azure Web App (on main/feature/api branches)
 
 **Setup**:
-1. Create Azure Service Principal and add as GitHub secret `AZURE_CREDENTIALS`
-2. Add `AZURE_RESOURCE_GROUP` and update `AZURE_WEBAPP_NAME` in workflow file
-3. Push to `main` branch to trigger deployment
+1. Create Azure resources (see above)
+2. Configure GitHub secrets
+3. Update workflow variables if needed:
+   - `AZURE_WEBAPP_NAME`
+   - `AZURE_REGISTRY_NAME`
+4. Push to trigger deployment
 
 ---
 

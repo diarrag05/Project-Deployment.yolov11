@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Environment
+.env
+.env.local
+
+# Logs
+logs/
+*.log
+
+# Git
+.git/
+.gitignore
+
+# Large files (will be downloaded/mounted)
+models/*.pt
+models/*.pth
+!models/.gitkeep
+
+# Training outputs
+runs/
+outputs/validated_images/
+outputs/uploads/
+
+# Dataset images (too large)
+dataset/train/images/
+dataset/valid/images/
+dataset/test/images/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+*.md
+!README.md
+
+# CI/CD
+.github/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+

@@ -13,14 +13,20 @@ from api.main import app
 from backend.src.config import Config
 
 if __name__ == '__main__':
+    import os
+    
+    # Azure uses PORT environment variable
+    port = int(os.getenv("PORT", Config.FASTAPI_PORT))
+    host = os.getenv("HOST", Config.FASTAPI_HOST)
+    
     print("="*60)
     print("Chip-and-Hole Detection API (FastAPI)")
     print("="*60)
     print(f"Environment: {Config.FASTAPI_ENV}")
     print(f"Debug: {Config.FASTAPI_DEBUG}")
-    print(f"API available at: http://{Config.FASTAPI_HOST}:{Config.FASTAPI_PORT}")
-    print(f"Documentation: http://{Config.FASTAPI_HOST}:{Config.FASTAPI_PORT}/docs")
-    print(f"Health check: http://{Config.FASTAPI_HOST}:{Config.FASTAPI_PORT}/health")
+    print(f"API available at: http://{host}:{port}")
+    print(f"Documentation: http://{host}:{port}/docs")
+    print(f"Health check: http://{host}:{port}/health")
     print("="*60)
     
     # Configure workers based on environment
@@ -30,8 +36,8 @@ if __name__ == '__main__':
     
     uvicorn.run(
         "api.main:app",
-        host=Config.FASTAPI_HOST,
-        port=Config.FASTAPI_PORT,
+        host=host,
+        port=port,
         workers=workers,
         reload=Config.FASTAPI_DEBUG,
         log_level="info" if Config.FASTAPI_DEBUG else "warning",
