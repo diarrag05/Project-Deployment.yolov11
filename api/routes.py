@@ -110,8 +110,6 @@ async def analyze_image(
                     }
                 )
             
-            from backend.src.utils.logger import get_logger
-            logger = get_logger(__name__)
             logger.info("No model found. Starting initial training automatically...")
             
             training_id = training_job_manager.start_training(
