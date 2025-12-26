@@ -75,19 +75,12 @@ async def robots_txt():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint."""
-    return {"status": "healthy"}
+    """Health check endpoint - responds immediately for Azure startup probe."""
+    return {"status": "healthy", "ready": True}
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize SAM model on startup (load once, reuse for all requests)."""
-    try:
-        from api.sam_manager import get_sam_service
-        logger.info("Loading SAM model (this may take a moment)...")
-        get_sam_service()  # Load SAM model once
-        logger.info("SAM model loaded successfully")
-    except Exception as e:
-        logger.warning(f"SAM model not available: {e}. SAM features will be disabled.")
+# Note: SAM model is loaded lazily on first use (not at startup)
+# This allows the application to start quickly and pass Azure's startup probe
+# The model will be loaded when the first SAM segmentation request is made
 
 logger.info("FastAPI application initialized successfully")
 
