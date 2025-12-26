@@ -655,9 +655,19 @@ python inference.py --source dataset/test/images/image.jpg --save-txt
 
 ### Dataset and Configuration
 
-- The `dataset/` folder is **included** in the project
-- The `.env` file is **included** with default settings
-- **No sensitive or confidential data** is present in these files
+- The `dataset/` folder structure is **included** in the project (with `data.yaml` configuration)
+- **Dataset images are NOT committed to Git** for the following reasons:
+  - **File size**: Image datasets can be very large (hundreds of MB to GB)
+  - **Git limitations**: Git is not optimized for large binary files
+  - **Storage efficiency**: Avoid bloating the repository size
+  - **Download from Roboflow**: Users should download the dataset from Roboflow using the URL in `dataset/data.yaml`
+- The `.env` file is **NOT committed** to Git (security best practice)
+- **No sensitive or confidential data** is present in committed files
+
+**To get the dataset**:
+1. Use the Roboflow URL in `dataset/data.yaml`: `https://universe.roboflow.com/projet-deployment-and-maintenance/project-deployment-1hkdn/dataset/1`
+2. Download the dataset and extract it to the `dataset/` folder
+3. The structure should match: `dataset/train/images/`, `dataset/valid/images/`, `dataset/test/images/`
 
 ### Production vs Development
 
