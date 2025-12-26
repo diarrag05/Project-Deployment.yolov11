@@ -81,7 +81,22 @@ async def analyze_image(
             logger.info("Model not found locally. Attempting to download from Azure Blob Storage...")
             download_success = download_model_from_blob()
             if not download_success:
-                logger.warning("Failed to download model from Blob Storage. Will try training if dataset available.")
+                error_msg = (
+                    "Failed to download model from Azure Blob Storage. "
+                    "Please check: "
+                    "1) AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_KEY, and AZURE_STORAGE_CONTAINER are configured in Azure App Settings, "
+                    "2) The model file 'best.pt' exists in the Blob Storage container, "
+                    "3) The storage account key is correct."
+                )
+                logger.error(error_msg)
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        'error': 'Model not available',
+                        'message': error_msg,
+                        'troubleshooting': 'Check /test-blob-storage endpoint to verify Blob Storage connection'
+                    }
+                )
         
         # Check if model exists, if not, start initial training
         if not Config.DEFAULT_MODEL.exists():
@@ -116,7 +131,19 @@ async def analyze_image(
         
         # Run inference (lazy import to speed up startup)
         from backend.src.services import YOLOInferenceService
-        inference_service = YOLOInferenceService()
+        try:
+            inference_service = YOLOInferenceService()
+        except FileNotFoundError as e:
+            logger.error(f"YOLO model file not found: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    'error': 'Model file not found',
+                    'message': f'Model file not found at {Config.DEFAULT_MODEL}. Please ensure the model is downloaded from Blob Storage.',
+                    'model_path': str(Config.DEFAULT_MODEL)
+                }
+            )
+        
         inference_result = inference_service.predict(str(file_path), save_output=True)
         
         # Calculate void rate (lazy import)
