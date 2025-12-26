@@ -78,6 +78,11 @@ async def health():
     """Health check endpoint - responds immediately for Azure startup probe."""
     return {"status": "healthy", "ready": True}
 
+@app.get("/ready")
+async def ready():
+    """Readiness probe - even simpler than health check for faster startup."""
+    return {"ready": True}
+
 # Note: SAM model is loaded lazily on first use (not at startup)
 # This allows the application to start quickly and pass Azure's startup probe
 # The model will be loaded when the first SAM segmentation request is made

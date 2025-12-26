@@ -18,15 +18,9 @@ import cv2
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.src.services import (
-    YOLOInferenceService,
-    VoidRateCalculator,
-    LabelManager,
-    TrainingService
-)
-from api.sam_manager import get_sam_service
+# Lazy imports for heavy dependencies (YOLO, etc.) - imported in functions when needed
+# This speeds up application startup
 from backend.src.config import Config
-from backend.src.utils.image_utils import load_image
 from backend.src.utils.logger import get_logger
 from api.storage import StorageManager
 from api.training_job import TrainingJobManager
@@ -112,11 +106,13 @@ async def analyze_image(
                 }
             )
         
-        # Run inference
+        # Run inference (lazy import to speed up startup)
+        from backend.src.services import YOLOInferenceService
         inference_service = YOLOInferenceService()
         inference_result = inference_service.predict(str(file_path), save_output=True)
         
-        # Calculate void rate
+        # Calculate void rate (lazy import)
+        from backend.src.services import VoidRateCalculator
         calculator = VoidRateCalculator(threshold=threshold)
         analysis = calculator.analyze_chip(inference_result, save_annotated_image=True)
         
@@ -237,7 +233,8 @@ async def segment_image(
             content = await file.read()
             buffer.write(content)
         
-        # Use singleton SAM service (model loaded once, reused)
+        # Use singleton SAM service (model loaded once, reused) - lazy import
+        from api.sam_manager import get_sam_service
         sam_service = get_sam_service()
         
         # Parse points and labels
