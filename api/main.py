@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 # Add parent directory to path
@@ -63,6 +63,15 @@ async def index():
     if index_file.exists():
         return FileResponse(index_file)
     return HTMLResponse("<h1>Frontend not found</h1>")
+
+@app.get("/robots.txt")
+async def robots_txt():
+    """Serve robots.txt to prevent search engine indexing."""
+    robots_file = frontend_dir / 'robots.txt'
+    if robots_file.exists():
+        return FileResponse(robots_file, media_type="text/plain")
+    # Return default robots.txt if file doesn't exist
+    return Response(content="User-agent: *\nDisallow: /", media_type="text/plain")
 
 @app.get("/health")
 async def health():
