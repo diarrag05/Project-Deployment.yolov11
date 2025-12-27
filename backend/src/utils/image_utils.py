@@ -16,34 +16,12 @@ def load_image(image_path: str | Path) -> np.ndarray:
     if not image_path.exists():
         raise FileNotFoundError(f"Image not found: {image_path}")
     
-    # Load image with OpenCV (reads as BGR)
-    image = cv2.imread(str(image_path), cv2.IMREAD_COLOR)
+    image = cv2.imread(str(image_path))
     if image is None:
-        # Try loading as-is (might be grayscale or other format)
-        image = cv2.imread(str(image_path), cv2.IMREAD_UNCHANGED)
-        if image is None:
-            raise ValueError(f"Could not load image: {image_path}")
+        raise ValueError(f"Could not load image: {image_path}")
     
-    # Convert BGR to RGB. If grayscale, convert to 3-channel RGB.
-    if len(image.shape) == 2:  # Grayscale image
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
-    elif len(image.shape) == 3:
-        if image.shape[2] == 4:  # RGBA
-            image = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
-        else:  # BGR
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    
-    # Ensure uint8 format
-    if image.dtype != np.uint8:
-        if image.max() <= 1.0:
-            image = (image * 255).astype(np.uint8)
-        else:
-            image = image.astype(np.uint8)
-    
-    # Verify image is not all zeros (black)
-    if np.all(image == 0):
-        raise ValueError(f"Image is completely black after loading - check image file: {image_path}")
-    
+    # Convert BGR to RGB
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     return image
 
 
@@ -52,41 +30,13 @@ def save_image(image: np.ndarray, output_path: str | Path, format: str = "PNG") 
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     
-    # Make a copy to avoid modifying the original
-    image_to_save = image.copy()
-    
-    # Ensure values are in correct range (0-255) and uint8 format
-    if image_to_save.dtype != np.uint8:
-        if image_to_save.max() <= 1.0:
-            image_to_save = (image_to_save * 255).astype(np.uint8)
-        else:
-            image_to_save = image_to_save.astype(np.uint8)
-    
-    # Ensure image is in correct format for OpenCV (BGR)
-    if len(image_to_save.shape) == 2:
-        # Grayscale: convert to BGR (3 channels)
-        image_bgr = cv2.cvtColor(image_to_save, cv2.COLOR_GRAY2BGR)
-    elif len(image_to_save.shape) == 3:
-        if image_to_save.shape[2] == 3:
-            # RGB: convert to BGR for OpenCV
-            image_bgr = cv2.cvtColor(image_to_save, cv2.COLOR_RGB2BGR)
-        elif image_to_save.shape[2] == 4:
-            # RGBA: convert to BGR (drop alpha)
-            image_bgr = cv2.cvtColor(image_to_save, cv2.COLOR_RGBA2BGR)
-        else:
-            image_bgr = image_to_save
+    # Convert RGB to BGR for OpenCV
+    if len(image.shape) == 3:
+        image_bgr = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     else:
-        image_bgr = image_to_save
+        image_bgr = image
     
-    # Verify image is not all zeros (black)
-    if np.all(image_bgr == 0):
-        raise ValueError(f"Image is completely black - check image loading and conversion")
-    
-    # Save image
-    success = cv2.imwrite(str(output_path), image_bgr)
-    if not success:
-        raise ValueError(f"Failed to save image to {output_path}")
-    
+    cv2.imwrite(str(output_path), image_bgr)
     return output_path
 
 
