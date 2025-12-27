@@ -44,6 +44,34 @@ def get_managers(request: Request) -> tuple[StorageManager, TrainingJobManager, 
     return storage_manager, training_job_manager, upload_dir
 
 
+def get_relative_image_path(absolute_path: str) -> str:
+    """
+    Convert absolute path to relative path from OUTPUT_DIR for frontend access.
+    Works for both local and Docker/Azure environments.
+    
+    Args:
+        absolute_path: Absolute path to image file
+        
+    Returns:
+        Relative path from OUTPUT_DIR (e.g., "inference/image.jpg")
+    """
+    if not absolute_path:
+        return ""
+    abs_path = Path(absolute_path)
+    try:
+        # Try to make path relative to OUTPUT_DIR
+        rel_path = abs_path.relative_to(Config.OUTPUT_DIR)
+        return str(rel_path)
+    except ValueError:
+        # If not under OUTPUT_DIR, try BASE_DIR
+        try:
+            rel_path = abs_path.relative_to(Config.BASE_DIR)
+            return str(rel_path)
+        except ValueError:
+            # Last resort: return just the filename
+            return abs_path.name
+
+
 @router.post("/analyze")
 async def analyze_image(
     file: UploadFile = File(...),
@@ -149,10 +177,15 @@ async def analyze_image(
         calculator = VoidRateCalculator(threshold=threshold)
         analysis = calculator.analyze_chip(inference_result, save_annotated_image=True)
         
+        # Convert absolute paths to relative paths for frontend access
+        # This ensures images work in both local and Azure/Docker environments
+        output_image_path_rel = get_relative_image_path(analysis.output_image_path) if analysis.output_image_path else ""
+        image_path_rel = get_relative_image_path(analysis.image_path) if analysis.image_path else ""
+        
         # Prepare response
         return {
-            'image_path': analysis.image_path,
-            'output_image_path': analysis.output_image_path,
+            'image_path': image_path_rel,
+            'output_image_path': output_image_path_rel,
             'statistics': analysis.statistics.dict(),
             'is_usable': analysis.is_usable,
             'threshold': analysis.threshold,
@@ -236,9 +269,13 @@ async def analyze_batch(
             inference_result = inference_service.predict(str(file_path), save_output=True)
             analysis = calculator.analyze_chip(inference_result, save_annotated_image=True)
             
+            # Convert absolute paths to relative paths for frontend access
+            output_image_path_rel = get_relative_image_path(analysis.output_image_path) if analysis.output_image_path else ""
+            image_path_rel = get_relative_image_path(analysis.image_path) if analysis.image_path else ""
+            
             results.append({
-                'image_path': analysis.image_path,
-                'output_image_path': analysis.output_image_path,
+                'image_path': image_path_rel,
+                'output_image_path': output_image_path_rel,
                 'statistics': analysis.statistics.dict(),
                 'is_usable': analysis.is_usable,
                 'threshold': analysis.threshold
@@ -417,9 +454,13 @@ async def segment_image(
                 }
             )
         
+        # Convert absolute paths to relative paths for frontend access
+        output_image_path_rel = get_relative_image_path(result.output_image_path) if result.output_image_path else ""
+        image_path_rel = get_relative_image_path(result.image_path) if result.image_path else ""
+        
         return {
-            'image_path': result.image_path,
-            'output_image_path': result.output_image_path,
+            'image_path': image_path_rel,
+            'output_image_path': output_image_path_rel,
             'num_masks': result.num_masks,
             'mode': 'guided',
             'processing_time': result.processing_time,
@@ -959,7 +1000,12 @@ async def get_image(image_path: str, request: Request = ...):
         else:
             # Try as relative path from outputs directory
             try:
+                # Handle relative paths like "inference/image.jpg"
                 full_path = Config.OUTPUT_DIR / path_obj
+                if full_path.exists() and full_path.is_file():
+                    return FileResponse(str(full_path))
+                
+                # Also try resolving (for Docker paths that might need resolution)
                 resolved_path = full_path.resolve()
                 outputs_resolved = Config.OUTPUT_DIR.resolve()
                 
